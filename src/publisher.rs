@@ -4,26 +4,28 @@ use zenoh::pubsub::Publisher;
 use zenoh::handlers::FifoChannelHandler;
 use zenoh::sample::Sample;
 
-struct pubs<'a> {
-    session : zenoh::Session,
+struct Pubs<'a> {
     publisher : zenoh::pubsub::Publisher<'a>,
+    session : zenoh::Session,
 }
 
-impl<'a> pubs<'a> {
-    fn new() -> pubs<'a> {
+impl<'a> Pubs<'a> {
+    fn new() -> Pubs<'a> {
         let session = zenoh::open(zenoh::Config::default()).wait().unwrap();
         let publisher = session.declare_publisher("key/expr").wait().unwrap();
 
-        pubs {
+        Pubs {
             session : session, 
             publisher : publisher
         }
     }
-    fn sendStr(&self, s : &str) {
-        self.publisher.put("Hello World").wait().unwrap()
+    fn send_str(&self, s : &str) {
+        self.publisher.put(s).wait().unwrap()
+    }
+    fn send_vec(&self, v : &Vec<u8>) {
+        self.publisher.put(v).wait().unwrap()
     }
 }
-
 
 
 fn publisher() {
