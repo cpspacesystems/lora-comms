@@ -3,8 +3,6 @@ use std::{error::Error, fmt, io::Read, u8};
 use crate::byte_ops::types::{self, DataSectionType};
 use crc::{self, CRC_16_CMS};
 
-use crate::byte_ops::fec;
-
 pub type BufferType = Vec<u8>; 
 
 // adds section boundary
