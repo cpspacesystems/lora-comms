@@ -1,22 +1,7 @@
 use std::{error::Error, fmt, io::Read, u8};
 
-use crate::byte_ops::types::{self, DataSectionType};
-use crc::{self, CRC_16_CMS};
-
-pub type BufferType = Vec<u8>; 
-
-// adds section boundary
-const DATA_BOUNDARY: u8 = 0b11011011_u8.to_le();  
-fn add_boundary(buffer: &mut BufferType) {
-    buffer.push(DATA_BOUNDARY);
-}
-
-// computes CRC on existing buffers and adds crc to buffer
-fn add_crc(buffer: &mut BufferType) {
-    let crc = crc::Crc::<u16>::new(&CRC_16_CMS);
-    let checksum = crc.checksum(buffer.as_slice());
-    buffer.extend_from_slice(&checksum.to_le_bytes()); 
-}
+use crate::byte_ops::types::{self, DataSectionType, BufferType};
+use crate::byte_ops::common::*;
 
 pub fn create_data_section(data_type: types::DataSectionType, mut data: Vec<u8>) -> BufferType {
     match data_type {
@@ -28,7 +13,7 @@ pub fn create_data_section(data_type: types::DataSectionType, mut data: Vec<u8>)
 
             buffer.push(data_type.to_le());
             buffer.append(&mut data);
-            add_crc(&mut buffer);
+            buffer.extend_from_slice(&compute_crc16(&buffer.as_slice()).to_le_bytes());
             add_boundary(&mut buffer);
 
             buffer
@@ -73,9 +58,7 @@ pub fn decode_data_section(data: Vec<u8>) -> Result<DecodedDataSection, Box<dyn 
 
     // CRC check
     let checksum = u16::from_le_bytes(data[l-3..l-1].try_into()?); 
-    
-    let crc = crc::Crc::<u16>::new(&CRC_16_CMS);
-    if checksum != crc.checksum(&data[0..l-3]) {
+    if checksum != compute_crc16(&data[0..l-3]) {
         return Err(Box::new(DecodeError("CRC no match".to_string())));
     }
 

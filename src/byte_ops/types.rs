@@ -1,4 +1,6 @@
 pub type DataSectionType = u8;
+pub type BufferType = Vec<u8>; 
+
 // id allocations, please follow these allocations otherwise undefined behavior
 pub mod type_allocations {
     pub const RESERVED: std::ops::Range<u8> = 1..10;

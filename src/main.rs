@@ -1,4 +1,4 @@
-use crate::byte_ops::converter::{create_data_section, decode_data_section};
+use crate::byte_ops::data_section::{create_data_section, decode_data_section};
 
 mod byte_ops;
 
