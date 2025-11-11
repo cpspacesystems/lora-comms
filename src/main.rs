@@ -1,6 +1,6 @@
-use crate::byte_ops::data_section::{create_data_section, decode_data_section};
+use crate::packet::data_section::{create_data_section, decode_data_section};
 
-mod byte_ops;
+mod packet;
 
 #[tokio::main]
 async fn main() {
@@ -8,7 +8,7 @@ async fn main() {
 
     let data = b"hello world".to_vec(); 
 
-    let buffer = create_data_section(byte_ops::types::flatbuffers::ALITITUDE, data);
+    let buffer = create_data_section(packet::types::flatbuffers::ALITITUDE, data).unwrap();
 
     let decoded = decode_data_section(buffer).unwrap(); 
 
