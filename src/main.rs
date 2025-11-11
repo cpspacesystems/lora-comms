@@ -4,13 +4,19 @@ mod subscriber;
 fn main() {
     let p = publisher::Pubs::new("test".to_string());
     p.send_str("Hello World");
-    let s = subscriber::Subs::new("test".to_string());
-    s.get();
+    //let s = subscriber::Subs::new("test".to_string());
+    //s.get();
 }
 
 
-// functions that make an interface
-// tells things to subscribe to
-// let us do callbacks
-// if something happens, callbacks happens
-// configurations
+//lora radio code: tell zenoh when to get new data
+//goes through everything it needs to get (newest version of data) and puts it into flatbuffers
+//put flatbuffers into packets
+//send packets into lora
+//schedule packet to be sent over lora
+
+// 8 bit enum instead of string key
+
+
+
+
