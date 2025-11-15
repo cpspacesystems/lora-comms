@@ -3,7 +3,7 @@ use std::{error::Error, fmt};
 use crate::packet::types;
 pub type ErrorType = Box<dyn Error + Send + Sync>;
 
-#[derive(Debug)]
+#[derive(Debug, PartialEq)]
 pub struct DecodeError(pub String);
 impl fmt::Display for DecodeError {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
@@ -12,7 +12,7 @@ impl fmt::Display for DecodeError {
 }
 impl Error for DecodeError {}
 
-#[derive(Debug)]
+#[derive(Debug, PartialEq)]
 pub struct EncodeError(pub String);
 impl fmt::Display for EncodeError {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
@@ -22,7 +22,7 @@ impl fmt::Display for EncodeError {
 impl Error for EncodeError {}
 
 
-#[derive(Debug)]
+#[derive(Debug, PartialEq)]
 pub struct EncodeReservedError(pub types::DataSectionType);
 impl fmt::Display for EncodeReservedError {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
@@ -32,7 +32,7 @@ impl fmt::Display for EncodeReservedError {
 impl Error for EncodeReservedError {}
 
 
-#[derive(Debug)]
+#[derive(Debug, PartialEq)]
 pub struct EncodeUnknownTypeError(pub types::DataSectionType);
 impl fmt::Display for EncodeUnknownTypeError {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
@@ -42,7 +42,7 @@ impl fmt::Display for EncodeUnknownTypeError {
 impl Error for EncodeUnknownTypeError {}
 
 
-#[derive(Debug)]
+#[derive(Debug, PartialEq)]
 pub struct DecodeTooSmallError();
 impl fmt::Display for DecodeTooSmallError {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
@@ -51,7 +51,7 @@ impl fmt::Display for DecodeTooSmallError {
 }
 impl Error for DecodeTooSmallError {}
 
-#[derive(Debug)]
+#[derive(Debug, PartialEq)]
 pub struct DecodeBoundaryMissingError<'a>(pub &'a str);
 impl fmt::Display for DecodeBoundaryMissingError<'_> {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
@@ -60,7 +60,7 @@ impl fmt::Display for DecodeBoundaryMissingError<'_> {
 }
 impl Error for DecodeBoundaryMissingError<'_> {}
 
-#[derive(Debug)]
+#[derive(Debug, PartialEq)]
 pub struct DecodeCRCNoMatchError();
 impl fmt::Display for DecodeCRCNoMatchError {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {

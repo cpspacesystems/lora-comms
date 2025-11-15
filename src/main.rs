@@ -10,7 +10,7 @@ async fn main() {
 
     let buffer = create_data_section(packet::types::flatbuffers::ALITITUDE, data).unwrap();
 
-    let decoded = decode_data_section(buffer).unwrap(); 
+    let decoded = decode_data_section(buffer.into()).unwrap(); 
 
     println!("{}, {:?}", decoded.dtype, decoded.bytes);
 

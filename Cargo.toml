@@ -4,6 +4,7 @@ version = "0.1.0"
 edition = "2024"
 
 [dependencies]
+bitvec = { version = "1.0.1", features = ["serde"] }
 crc = "3.3.0"
 flatbuffers = { version = "25.9.23", features = ["serialize"] }
 tokio = { version = "1.48.0", features = ["macros"] }

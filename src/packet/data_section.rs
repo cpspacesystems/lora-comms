@@ -61,7 +61,7 @@ pub mod reserved {
     pub fn create_reset() -> BufferType {
         vec![0b00000000_u8.to_le(), DATA_BOUNDARY]
     }
-    
+
     pub fn create_indicator_time_gps(time: GPSTime) -> BufferType {
         let mut buffer = BufferType::with_capacity(11); 
         buffer.push(0b00000001_u8.to_le());
@@ -75,15 +75,24 @@ pub mod reserved {
         vec![0b00001001_u8.to_le(), 0b00001001_u8.to_le(), 0b00001001_u8.to_le()]
     }
 
+    
+
 }
 
 #[cfg(test)]
 mod tests {
+    use crate::packet;
     use super::*;
 
     #[test]
-    fn test_create_data_section() {
-
+    fn test_data_section() {
+        create_data_section(2, vec![]).expect_err("Err expected");
+        create_data_section(255, vec![]).expect_err("Err expected");
+        
+        let data = b"hello world".to_vec(); 
+        // assert_eq!(create_data_section(packet::types::flatbuffers::ALITITUDE, data).unwrap(), 
+        //     Vec::from(0b000010100110100001100101011011000110110001101111001000000111011101101111011100100110110001100100100011110111001011011011_u128.to_be_bytes())
+        // );
     }
 }
 
