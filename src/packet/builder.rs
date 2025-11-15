@@ -8,6 +8,10 @@ pub struct PacketBuilder {
 }
 
 impl PacketBuilder {
+    pub fn new() -> Self {
+        Self { data_sections: Vec::new() }
+    }
+
     pub fn add(&mut self, data_type: types::DataSectionType, data: Vec<u8>) -> Result<(), ErrorType> {
         self.data_sections.push(create_data_section(data_type, data)?);
         Ok(())
