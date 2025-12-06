@@ -15,7 +15,6 @@ pub fn create_data_section(data_type: types::DataSectionType, mut data: Vec<u8>)
             buffer.push(data_type.to_le());
             buffer.append(&mut data);
             buffer.extend_from_slice(&compute_crc16(&buffer.as_slice()).to_le_bytes());
-            add_boundary(&mut buffer);
 
             Ok(buffer)
         }, 
@@ -36,11 +35,6 @@ pub fn decode_data_section(data: Vec<u8>) -> Result<DecodedDataSection, ErrorTyp
         return Err(DecodeTooSmallError().into());
     }
 
-    // boundary check
-    if data[l-1] != DATA_BOUNDARY {
-        return Err(DecodeBoundaryMissingError("end").into()); 
-    }
-
     // CRC check
     let checksum = u16::from_le_bytes(data[l-3..l-1].try_into()?); 
     if checksum != compute_crc16(&data[0..l-3]) {
@@ -59,7 +53,7 @@ pub mod reserved {
     use super::*;
 
     pub fn create_reset() -> BufferType {
-        vec![0b00000000_u8.to_le(), DATA_BOUNDARY]
+        vec![0b00000000_u8.to_le()]
     }
 
     pub fn create_indicator_time_gps(time: GPSTime) -> BufferType {
@@ -67,7 +61,6 @@ pub mod reserved {
         buffer.push(0b00000001_u8.to_le());
         buffer.extend_from_slice(&time.to_le_bytes());
         buffer.push(compute_crc8(&buffer).to_le());
-        buffer.push(DATA_BOUNDARY);
         buffer
     }
 
