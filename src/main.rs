@@ -1,5 +1,4 @@
 use crate::packet::builder;
-mod sx1302;
 mod packet;
 mod publisher;
 mod subscriber;

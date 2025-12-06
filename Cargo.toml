@@ -17,3 +17,7 @@ unused_imports = "allow"
 [[bin]]
 name = "main"
 path = "src/main.rs"
+
+[[bin]]
+name = "ground"
+path = "src/ground.rs"
