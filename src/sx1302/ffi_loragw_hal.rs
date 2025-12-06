@@ -59,7 +59,7 @@ pub const LGW_RF_CHAIN_NB: usize =    2;                  /* number of RF chains
 pub const LGW_IF_CHAIN_NB: usize =    10;      /* number of IF+modem RX chains */
 pub const LGW_REF_BW: u32 =         125000;  /* typical bandwidth of data channel */
 pub const LGW_MULTI_NB: u16 =       8;       /* number of LoRa 'multi SF' chains */
-pub const LGW_MULTI_SF_EN: u16 = 0xFF;    /* bitmask to enable/disable SF for multi-sf correlators  (12 11 10 9 8 7 6 5) */
+pub const LGW_MULTI_SF_EN: u8 = 0xFF;    /* bitmask to enable/disable SF for multi-sf correlators  (12 11 10 9 8 7 6 5) */
 
 /* values available for the 'modulation' parameters */
 /* NOTE: arbitrary values */
@@ -240,6 +240,7 @@ pub struct lgw_conf_rxrf_s {
 @brief Configuration structure for an IF chain
 */
 #[repr(C)]
+#[derive(Debug, Clone, Copy, Default)]
 pub struct lgw_conf_rxif_s {
     /// enable or disable that IF chain
     pub enable: bool, 
@@ -280,6 +281,8 @@ pub struct lgw_conf_demod_s {
 @brief Structure containing the metadata of a packet that was received and a pointer to the payload
 */
 #[repr(C)]
+#[derive(Debug)]
+#[derive(Clone, Copy)]
 pub struct lgw_pkt_rx_s {
     /// central frequency of the IF chain 
     pub freq_hz: u32,        
@@ -370,6 +373,7 @@ pub struct lgw_pkt_tx_s {
 @brief Structure containing all gains of Tx chain
 */
 #[repr(C)]
+#[derive(Debug, Clone, Copy, Default)]
 pub struct lgw_tx_gain_s {
     /// measured TX power at the board connector, in dBm 
     pub rf_power: i8,  
@@ -542,6 +546,7 @@ pub enum lgw_spectral_scan_status_t {
 /* --- PUBLIC FUNCTIONS PROTOTYPES ------------------------------------------ */
 #[cfg(target_family = "unix")]
 #[link(name = "loragw", kind="static")]
+#[link(name = "tinymt32", kind="static")]
 unsafe extern "C" {
     /**
     @brief Configure the gateway board
