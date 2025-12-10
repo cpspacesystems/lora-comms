@@ -2,7 +2,6 @@ use crate::packet::builder;
 mod packet;
 mod publisher;
 mod subscriber;
-mod packet;
 
 //lora radio code: tell zenoh when to get new data
 //goes through everything it needs to get (newest version of data) and puts it into flatbuffers
