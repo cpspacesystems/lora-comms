@@ -1,12 +1,11 @@
 use std::{error::Error, fmt, io::Read, u8};
 use zenoh::bytes;
 
-use crate::packet::allocations::{self, DataSectionType};
-use crate::packet::types::{self, BufferType};
+use crate::packet::allocations::{self, DSAllocRecord};
 use crate::packet::common::*;
 use crate::packet::error::*;
 
-pub fn create_data_section(data_type: DataSectionType, mut data: Vec<u8>) -> Result<BufferType, ErrorType> {
+pub fn create_data_section(data_type: DSAllocRecord, mut data: Vec<u8>) -> Result<BufferType, ErrorType> {
     match data_type {
         i if allocations::type_allocations::RESERVED.contains(&i.id) => {
             Err(LORAError::EncodeReservedError(data_type))
@@ -25,7 +24,7 @@ pub fn create_data_section(data_type: DataSectionType, mut data: Vec<u8>) -> Res
 #[derive(Debug)]
 #[derive(PartialEq)]
 pub struct DecodedDataSection {
-    pub dtype: DataSectionType, 
+    pub dtype: DSAllocRecord, 
     pub bytes: BufferType
 }
 pub fn decode_data_sections(data: Vec<u8>) -> Result<Vec<DecodedDataSection>, ErrorType> {
@@ -44,7 +43,7 @@ pub fn decode_data_sections(data: Vec<u8>) -> Result<Vec<DecodedDataSection>, Er
 }
 
 pub mod reserved {
-    use crate::packet::types::GPSTime;
+    use crate::packet::common::GPSTime;
     use super::*;
 
     pub fn create_reset() -> BufferType {
@@ -74,7 +73,7 @@ mod tests {
         
         let data = b"abc".to_vec();
         let correct: Vec<u8> = [0x14, 0x61, 0x62, 0x63].to_vec();
-        assert_eq!(create_data_section(DataSectionType { id: 20, name: "()", size: 20 }, data).unwrap(), correct); 
+        assert_eq!(create_data_section(DSAllocRecord { id: 20, name: "()", size: 20 }, data).unwrap(), correct); 
     }
 
     #[test]

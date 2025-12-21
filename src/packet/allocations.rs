@@ -1,10 +1,10 @@
 use std::{collections::HashMap, sync::LazyLock};
 
-/// common type for all data section types
+/// common type for all data section id allocation records
 #[derive(Debug)]
 #[derive(Copy, Clone)]
 #[derive(PartialEq)]
-pub struct DataSectionType {
+pub struct DSAllocRecord {
     /// data type identifier
     pub id: u8,
     /// data type name
@@ -20,8 +20,8 @@ pub mod type_allocations {
 }
 
 pub struct IDAllocMap {
-    name_map: HashMap<&'static str, DataSectionType>,
-    id_map: HashMap<u8, DataSectionType>
+    name_map: HashMap<&'static str, DSAllocRecord>,
+    id_map: HashMap<u8, DSAllocRecord>
 }
 impl IDAllocMap {
 /////////////////////
@@ -67,7 +67,7 @@ impl IDAllocMap {
 
     /// shorthand for adding new DataSectionTypes
     pub fn ds(&mut self, id: u8, name: &'static str, size: usize) -> &mut Self {
-        let data = DataSectionType {id, name, size};
+        let data = DSAllocRecord {id, name, size};
         self.id_map.insert(id, data);
         self.name_map.insert(name, data);
         self
@@ -88,15 +88,15 @@ impl IDAllocMap {
         this
     }
     /// gets the dtype corrosponding to name (!panic-able)
-    pub fn by_name(&self, name: &'static str) -> DataSectionType {
+    pub fn by_name(&self, name: &'static str) -> DSAllocRecord {
         return self.name_map[name];
     }
     /// gets the dtype corrosponding to id (!panic-able)
-    pub fn by_id(&self, id: &u8) -> DataSectionType {
+    pub fn by_id(&self, id: &u8) -> DSAllocRecord {
         return self.id_map[id];
     }
     /// try to get the dtype corrosponding to id
-    pub fn try_id(&self, id: &u8) -> Option<DataSectionType> {
+    pub fn try_id(&self, id: &u8) -> Option<DSAllocRecord> {
         self.id_map.get(id).copied()
     }
 }
@@ -106,14 +106,14 @@ pub static DEFAULT_ALLOC_MAP: std::sync::LazyLock<IDAllocMap> = std::sync::LazyL
     IDAllocMap::init()
 });
 /// gets the dtype corrosponding to name in the default id mappings (!panic-able)
-pub fn by_name(name: &'static str) -> DataSectionType {
+pub fn by_name(name: &'static str) -> DSAllocRecord {
     DEFAULT_ALLOC_MAP.by_name(name)
 }
 /// gets the dtype corrosponding to id in the default id mappings (!panic-able)
-pub fn by_id(id: &u8) -> DataSectionType {
+pub fn by_id(id: &u8) -> DSAllocRecord {
     DEFAULT_ALLOC_MAP.by_id(id)
 }
 /// try to get the dtype corrosponding to id in the default id mappings 
-pub fn try_id(id: &u8) -> Option<DataSectionType> {
+pub fn try_id(id: &u8) -> Option<DSAllocRecord> {
     DEFAULT_ALLOC_MAP.try_id(id)
 }

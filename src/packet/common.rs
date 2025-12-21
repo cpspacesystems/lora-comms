@@ -1,5 +1,7 @@
 use crc::{self, CRC_8_LTE, CRC_16_CMS};
-use crate::packet::types::BufferType;
+
+pub type BufferType = Vec<u8>; 
+pub type GPSTime = u64; 
 
 // adds section boundary
 pub const DATA_BOUNDARY: u8 = 0b11011011_u8.to_le();  

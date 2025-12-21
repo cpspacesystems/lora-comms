@@ -1,5 +1,5 @@
 use thiserror::Error;
-use crate::packet::{allocations::DataSectionType};
+use crate::packet::{allocations::DSAllocRecord};
 
 pub type ErrorType = LORAError;
 
@@ -12,5 +12,5 @@ pub enum LORAError {
     #[error("Packet encode failed with: {0}")]
     EncodeGenericError(String),
     #[error("whelps, type id {} is a reserved type, please go call the apporiate functions for this type", .0.id)]
-    EncodeReservedError(DataSectionType),
+    EncodeReservedError(DSAllocRecord),
 }
