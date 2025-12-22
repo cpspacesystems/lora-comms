@@ -1,11 +1,7 @@
 use crc::{self, CRC_8_LTE, CRC_16_CMS};
-use crate::packet::types::BufferType;
 
-// adds section boundary
-pub const DATA_BOUNDARY: u8 = 0b11011011_u8.to_le();  
-pub fn add_boundary(buffer: &mut BufferType) {
-    buffer.push(DATA_BOUNDARY);
-}
+pub type BufferType = Vec<u8>; 
+pub type GPSTime = u64; 
 
 // computes 8 bit CRC on bytes
 pub fn compute_crc8(bytes: &[u8]) -> u8 {
