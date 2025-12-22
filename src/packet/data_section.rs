@@ -1,19 +1,17 @@
-use std::{error::Error, fmt, io::Read, u8};
-use zenoh::bytes;
+use crate::packet::record::{self, Record};
+use crate::common::*;
+use crate::error::*;
 
-use crate::packet::allocations::{self, DSAllocRecord};
-use crate::packet::common::*;
-use crate::packet::error::*;
-
-pub fn create_data_section(data_type: DSAllocRecord, mut data: Vec<u8>) -> Result<BufferType, ErrorType> {
-    match data_type {
-        i if allocations::type_allocations::RESERVED.contains(&i.id) => {
-            Err(LORAError::EncodeReservedError(data_type))
+/// creates a new data section of type with data
+pub fn create_data_section(dtype: &Record, mut data: Vec<u8>) -> Result<BufferType, ErrorType> {
+    match dtype {
+        i if record::type_allocations::RESERVED.contains(&i.id) => {
+            Err(LORAError::EncodeReservedError(dtype.id))
         },
         _ => { // everything else is unreserved and thus can be created using this func
-            let mut buffer = BufferType::with_capacity(1 + data.len() + 2 + 1);
+            let mut buffer = BufferType::with_capacity(1 + data.len());
 
-            buffer.push(data_type.id.to_le());
+            buffer.push(dtype.id.to_le());
             buffer.append(&mut data);
 
             Ok(buffer)
@@ -24,14 +22,17 @@ pub fn create_data_section(data_type: DSAllocRecord, mut data: Vec<u8>) -> Resul
 #[derive(Debug)]
 #[derive(PartialEq)]
 pub struct DecodedDataSection {
-    pub dtype: DSAllocRecord, 
+    pub dtype: Record, 
     pub bytes: BufferType
 }
+
+
+/// decode data sections into respective types and binary data of content
 pub fn decode_data_sections(data: Vec<u8>) -> Result<Vec<DecodedDataSection>, ErrorType> {
     let mut res: Vec<DecodedDataSection> = Vec::new();
     let mut head = 0; 
     while head < data.len() {
-        let dtype = if let Some(t) = allocations::try_id(&data[head]) { t } 
+        let dtype = if let Some(t) = record::try_id(&data[head]) { t } 
             else { return Err(LORAError::DecodeUnknownTypeError(data[head])); };
         head += 1;
         let bytes = data[head..head + dtype.size].to_vec();
@@ -43,7 +44,7 @@ pub fn decode_data_sections(data: Vec<u8>) -> Result<Vec<DecodedDataSection>, Er
 }
 
 pub mod reserved {
-    use crate::packet::common::GPSTime;
+    use crate::common::GPSTime;
     use super::*;
 
     pub fn create_reset() -> BufferType {
@@ -64,30 +65,30 @@ pub mod reserved {
 
 #[cfg(test)]
 mod tests {
-    use crate::packet::{self, allocations::{by_id, by_name}};
+    use crate::packet::record::{by_id, by_name, consumer_nop, producer_nop};
     use super::*;
 
     #[test]
     fn test_create_data_section() {
-        assert!(matches!(create_data_section(by_id(&0), vec![]), Err(LORAError::EncodeReservedError(_))));
+        assert!(matches!(create_data_section(&by_id(&0), vec![]), Err(LORAError::EncodeReservedError(_))));
         
         let data = b"abc".to_vec();
         let correct: Vec<u8> = [0x14, 0x61, 0x62, 0x63].to_vec();
-        assert_eq!(create_data_section(DSAllocRecord { id: 20, name: "()", size: 20 }, data).unwrap(), correct); 
+        assert_eq!(create_data_section(&Record { id: 20, name: "()", size: 20, producer: producer_nop(), consumer: consumer_nop()}, data).unwrap(), correct); 
     }
 
     #[test]
     fn test_decode_data_sections() {
         assert!(matches!(decode_data_sections(vec![0xFF, 0x01]), Err(LORAError::DecodeUnknownTypeError(_))));
 
-        let d1 = create_data_section(by_name("test1"), b"abc".to_vec()).unwrap();
+        let d1 = create_data_section(&by_name("test1"), b"abc".to_vec()).unwrap();
         assert_eq!(
             decode_data_sections(d1).unwrap(),
             vec![DecodedDataSection {bytes: b"abc".to_vec(), dtype: by_name("test1")}]
         );
 
-        let d1 = create_data_section(by_name("test1"), b"abc".to_vec()).unwrap();
-        let d2 = create_data_section(by_name("test2"), b"hello world".to_vec()).unwrap();
+        let d1 = create_data_section(&by_name("test1"), b"abc".to_vec()).unwrap();
+        let d2 = create_data_section(&by_name("test2"), b"hello world".to_vec()).unwrap();
         let d3 = [d1.clone(), d2.clone(), d1.clone(), d2.clone()].concat();
         assert_eq!(
             decode_data_sections(d3).unwrap(), 
