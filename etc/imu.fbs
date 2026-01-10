@@ -1,0 +1,11 @@
+include "types.fbs";
+
+table IMU {
+    accel:Vec3;
+    wvel:Vec3;
+    orient:Quaternion;
+    accum_pos:Vec3;
+    accum_vel:Vec3;
+}
+
+root_type IMU;

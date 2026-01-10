@@ -1,0 +1,18 @@
+include "types.fbs";
+include "alitmeter.fbs";
+include "gps.fbs";
+include "imu.fbs";
+
+table Telemetry {
+    fused_pos:Vec3;
+    fused_vel:Vec3;
+    gps:GPS;
+    imu1:IMU;
+    imu2:IMU;
+    imu3:IMU;
+    alitmeter1:Altimeter;
+    alitmeter2:Altimeter;
+    alitmeter3:Altimeter;
+}
+
+root_type Telemetry;

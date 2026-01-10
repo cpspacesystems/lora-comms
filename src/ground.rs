@@ -5,6 +5,12 @@ mod common;
 mod error;
 mod publisher;
 mod subscriber;
+mod data_handlers;
+
+fn build_packet() {
+    let p1 = data_handlers::altimeter::Producer::new("/test/altimeter1".into());
+
+}
 
 fn main() {
     println!("Program starting");

@@ -4,6 +4,7 @@ mod common;
 mod error;
 mod publisher;
 mod subscriber;
+mod data_handlers;
 
 //lora radio code: tell zenoh when to get new data
 //goes through everything it needs to get (newest version of data) and puts it into flatbuffers

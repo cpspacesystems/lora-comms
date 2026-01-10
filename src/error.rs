@@ -13,4 +13,7 @@ pub enum LORAError {
     EncodeGenericError(String),
     #[error("whelps, type id {0} is a reserved type, please go call the apporiate functions for this type")]
     EncodeReservedError(ID),
+
+    #[error("the altimeter at Zenoh {0} seems to have returned an invalid flatbuffer!")]
+    ParseFlatbufferAltimeterError(String),
 }
