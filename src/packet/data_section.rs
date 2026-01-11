@@ -1,43 +1,52 @@
-use crate::packet::record::{self, Record};
+use std::fmt::Debug;
+
 use crate::common::*;
+use crate::data_handlers::DataConsumer;
 use crate::error::*;
+use crate::packet::data_types::ConsumerManager;
+use crate::packet::data_types::ID;
 
 /// creates a new data section of type with data
-pub fn create_data_section(dtype: &Record, mut data: Vec<u8>) -> Result<BufferType, ErrorType> {
-    match dtype {
-        i if record::type_allocations::RESERVED.contains(&i.id) => {
-            Err(LORAError::EncodeReservedError(dtype.id))
-        },
-        _ => { // everything else is unreserved and thus can be created using this func
-            let mut buffer = BufferType::with_capacity(1 + data.len());
+pub fn create_data_section(type_id: ID, mut data: Vec<u8>) -> Result<BufferType, ErrorType> {
+    let mut buffer = BufferType::with_capacity(1 + data.len());
 
-            buffer.push(dtype.id.to_le());
-            buffer.append(&mut data);
+    buffer.push(type_id.to_le());
+    buffer.append(&mut data);
 
-            Ok(buffer)
-        }, 
-    }
+    Ok(buffer)
 }
 
-#[derive(Debug)]
-#[derive(PartialEq)]
-pub struct DecodedDataSection {
-    pub dtype: Record, 
+pub struct DecodedDataSection<'a> {
+    pub data_consumer: &'a dyn DataConsumer, 
     pub bytes: BufferType
+}
+impl Debug for DecodedDataSection<'_> {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        f.debug_struct("DecodedDataSection").field("data_consumer", &format!("PTR: {:p}", self.data_consumer)).field("bytes", &self.bytes).finish()
+    }
+}
+impl PartialEq for DecodedDataSection<'_> {
+    fn eq(&self, other: &Self) -> bool {
+        self.bytes == other.bytes
+    }
 }
 
 
 /// decode data sections into respective types and binary data of content
-pub fn decode_data_sections(data: Vec<u8>) -> Result<Vec<DecodedDataSection>, ErrorType> {
+pub fn decode_data_sections<'a>(consumer_mg: &'a ConsumerManager, data: Vec<u8>) -> Result<Vec<DecodedDataSection<'a>>, ErrorType> {
     let mut res: Vec<DecodedDataSection> = Vec::new();
     let mut head = 0; 
     while head < data.len() {
-        let dtype = if let Some(t) = record::try_id(&data[head]) { t } 
+        // parse and resolve id   
+        let data_consumer = if let Some(t) = consumer_mg.get_consumer_by_id(data[head]) { t } 
             else { return Err(LORAError::DecodeUnknownTypeError(data[head])); };
         head += 1;
-        let bytes = data[head..head + dtype.size].to_vec();
-        res.push(DecodedDataSection {bytes, dtype});
-        head += dtype.size;
+
+        // get content
+        let size = data_consumer.get_size();
+        let bytes = data[head..head + size].to_vec();
+        res.push(DecodedDataSection {data_consumer, bytes});
+        head += size;
     }
 
     Ok(res)
@@ -65,37 +74,37 @@ pub mod reserved {
 
 #[cfg(test)]
 mod tests {
-    use crate::packet::record::{by_id, by_name, consumer_nop, producer_nop};
+    use crate::packet::data_types::id_map::{self};
+
     use super::*;
 
     #[test]
-    fn test_create_data_section() {
-        assert!(matches!(create_data_section(&by_id(&0), vec![]), Err(LORAError::EncodeReservedError(_))));
-        
+    fn test_create_data_section() {        
         let data = b"abc".to_vec();
         let correct: Vec<u8> = [0x14, 0x61, 0x62, 0x63].to_vec();
-        assert_eq!(create_data_section(&Record { id: 20, name: "()", size: 20, producer: producer_nop(), consumer: consumer_nop()}, data).unwrap(), correct); 
+        assert_eq!(create_data_section(20, data).unwrap(), correct); 
     }
 
     #[test]
     fn test_decode_data_sections() {
-        assert!(matches!(decode_data_sections(vec![0xFF, 0x01]), Err(LORAError::DecodeUnknownTypeError(_))));
+        let consumer_mg = ConsumerManager::init();
+        assert!(matches!(decode_data_sections(&consumer_mg, vec![0xFF, 0x01]), Err(LORAError::DecodeUnknownTypeError(_))));
 
-        let d1 = create_data_section(&by_name("test1"), b"abc".to_vec()).unwrap();
+        let d1 = create_data_section(id_map::__test1, b"abc".to_vec()).unwrap();
         assert_eq!(
-            decode_data_sections(d1).unwrap(),
-            vec![DecodedDataSection {bytes: b"abc".to_vec(), dtype: by_name("test1")}]
+            decode_data_sections(&consumer_mg, d1).unwrap(),
+            vec![DecodedDataSection {bytes: b"abc".to_vec(), data_consumer: consumer_mg.get_consumer_by_id(id_map::__test1).unwrap()}]
         );
 
-        let d1 = create_data_section(&by_name("test1"), b"abc".to_vec()).unwrap();
-        let d2 = create_data_section(&by_name("test2"), b"hello world".to_vec()).unwrap();
+        let d1 = create_data_section(id_map::__test1, b"abc".to_vec()).unwrap();
+        let d2 = create_data_section(id_map::__test2, b"hello world".to_vec()).unwrap();
         let d3 = [d1.clone(), d2.clone(), d1.clone(), d2.clone()].concat();
         assert_eq!(
-            decode_data_sections(d3).unwrap(), 
-            vec![DecodedDataSection {bytes: b"abc".to_vec(), dtype: by_name("test1")},
-                DecodedDataSection {bytes: b"hello world".to_vec(), dtype: by_name("test2")},
-                DecodedDataSection {bytes: b"abc".to_vec(), dtype: by_name("test1")},
-                DecodedDataSection {bytes: b"hello world".to_vec(), dtype: by_name("test2")},
+            decode_data_sections(&consumer_mg, d3).unwrap(), 
+            vec![DecodedDataSection {bytes: b"abc".to_vec(), data_consumer: consumer_mg.get_consumer_by_id(id_map::__test1).unwrap()},
+                DecodedDataSection {bytes: b"hello world".to_vec(), data_consumer: consumer_mg.get_consumer_by_id(id_map::__test2).unwrap()},
+                DecodedDataSection {bytes: b"abc".to_vec(), data_consumer: consumer_mg.get_consumer_by_id(id_map::__test1).unwrap()},
+                DecodedDataSection {bytes: b"hello world".to_vec(), data_consumer: consumer_mg.get_consumer_by_id(id_map::__test2).unwrap()},
             ]
         )
         

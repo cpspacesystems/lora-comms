@@ -1,7 +1,7 @@
 
 use flatbuffers;
 
-use crate::{common::BufferType, data_handlers::DataProducer, error::{self, ErrorType, LORAError}, publisher, subscriber};
+use crate::{common::BufferType, data_handlers::{DataConsumer, DataProducer}, error::{self, ErrorType, LORAError}, publisher, subscriber};
 
 #[allow(unused_imports)]
 #[path = "../../gen/flatbuffers/alitmeter_generated.rs"]
@@ -36,7 +36,23 @@ impl DataProducer for Producer {
     }
 }
 
-pub struct Consumer {
+pub struct Consumer<'a> {
+    buffer_size: usize,
     zenoh_path: String,
-    publisher: publisher
+    publisher: publisher::Pubs<'a>,
+}
+impl<'a> Consumer<'a> {
+    pub fn new(buffer_size: usize, zenoh_path: String) -> Self {
+        return Self { buffer_size, zenoh_path: zenoh_path.clone(), publisher: publisher::Pubs::new(zenoh_path) };
+    }
+}
+impl<'a> DataConsumer for Consumer<'a> {
+    fn consume(&self, buffer: BufferType) -> Result<(), ErrorType> {
+        self.publisher.send_vec(&buffer);
+        Ok(())
+    }
+
+    fn get_size(&self) -> usize {
+        self.buffer_size
+    }
 }

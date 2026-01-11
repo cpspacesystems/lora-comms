@@ -2,38 +2,39 @@
 
 use std::default;
 
-use crate::packet::{data_section::{create_data_section, decode_data_sections}};
+use crate::packet::{data_section::{create_data_section, decode_data_sections}, data_types::{ConsumerManager, ProducerManager}};
 use crate::common::*;
 use crate::error::*;
 
 pub mod data_section;
-pub mod record;
+pub mod data_types;
 
-// ddon't wanna type 5 more words reexport
-pub use crate::packet::record::{by_id, by_name};
-
-#[derive(Default)]
-pub struct OutgoingPacketBuilder {
-    data_sections: Vec<BufferType>
+pub struct OutgoingPacketBuilder<'a> {
+    data_sections: Vec<BufferType>,
+    producer_mg: &'a ProducerManager,
 }
-impl OutgoingPacketBuilder {
-    // gather data section from producer with id
-    pub fn gather_by_id(&mut self, record_id: record::ID) -> Result<&mut Self, ErrorType> {
-        let dtype = by_id(&record_id);
-        let data = create_data_section(&dtype, dtype.produce()?)?; 
-        self.data_sections.push(data);
-        Ok(self)
+
+impl<'a> OutgoingPacketBuilder<'a> {
+    /// initializes a new OutgoingPackerBuilder
+    pub fn new(producer_mg: &'a ProducerManager) -> Self {
+        Self { data_sections: Vec::new(), producer_mg }
     }
-    // gather data section from producer with name
-    pub fn gather_by_name(&mut self, record_name: &'static str) -> Result<&mut Self, ErrorType> {
-        let dtype = by_name(&record_name);
-        let data = create_data_section(&dtype, dtype.produce()?)?; 
+
+    /// gather data section from producer with id
+    pub fn gather_by_id(&mut self, id: data_types::ID) -> Result<&mut Self, ErrorType> {
+        let producer = if let Some(p) = self.producer_mg.get_producer_by_id(id) { p }
+        else {
+            return Err(ErrorType::GatherUnknownTypeError(id));
+        };
+
+        let data = create_data_section(id, producer.produce()?)?; 
         self.data_sections.push(data);
         Ok(self)
     }
 
-    // builds new packet, consumes all data in internal buffer
-    // this builder can be reused for a new packet 
+    /// builds new packet, consumes all data in internal buffer
+    ///
+    /// this builder can be reused for a new packet 
     pub fn build(&mut self) -> BufferType {
         let data = self.data_sections.concat();
         self.data_sections.clear();
@@ -42,31 +43,33 @@ impl OutgoingPacketBuilder {
 }
 
 // consumes packet data, calling all corrosponding consumers
-pub fn consume_incoming_packet(data: BufferType) -> Result<(), ErrorType>{
-    let ds = decode_data_sections(data)?;
+pub fn decode_and_consume_incoming_packet(consumer_mg: &ConsumerManager, data: BufferType) -> Result<(), ErrorType>{
+    let ds = decode_data_sections(&consumer_mg, data)?;
     for i in ds {
-        i.dtype.consume(i.bytes)?;
+        i.data_consumer.consume(i.bytes)?;
     }
     Ok(())
 }
 
 #[cfg(test)]
 mod tests {
+    use crate::packet::data_types::id_map;
+
     use super::*;
 
     #[test]
     fn test_outgoing_packet_builder() {
-        let mut builder =  OutgoingPacketBuilder::default();
-
-        assert!(matches!(builder.gather_by_id(0), Err(ErrorType::EncodeReservedError(_))));
-        assert!(matches!(builder.gather_by_name("ack"), Err(ErrorType::EncodeReservedError(_))));
+        let producers = ProducerManager::init();
+        let mut builder =  OutgoingPacketBuilder::new(&producers);
 
         assert_eq!(builder.build(), BufferType::new());
 
+        assert!(matches!(builder.gather_by_id(255), Err(ErrorType::GatherUnknownTypeError(255))));
+
         assert_eq!(builder
-            .gather_by_name("test1").unwrap()
+            .gather_by_id(id_map::__test1).unwrap()
             .gather_by_id(252).unwrap()
-            .gather_by_name("test3").unwrap()
+            .gather_by_id(id_map::__test3).unwrap()
             .build(),
             [vec![0xFB], vec![0x00; 3], vec![0xFC], vec![0x00; 11], vec![0xFD], vec![0x00; 64]].concat() 
         );
@@ -74,9 +77,11 @@ mod tests {
 
     #[test]
     fn test_consume_incoming_packet() {
-        assert!(matches!(consume_incoming_packet(vec![0xEE]), Err(ErrorType::DecodeUnknownTypeError(_))));
-        assert_eq!(consume_incoming_packet(vec![]), Ok(()));
+        let consumers = ConsumerManager::init();
 
-        assert_eq!(consume_incoming_packet([vec![0xFB], vec![0x00; 3], vec![0xFC], vec![0x00; 11], vec![0xFD], vec![0x00; 64]].concat()), Ok(()));
+        assert!(matches!(decode_and_consume_incoming_packet(&consumers, vec![0xEE]), Err(ErrorType::DecodeUnknownTypeError(_))));
+        assert_eq!(decode_and_consume_incoming_packet(&consumers, vec![]), Ok(()));
+
+        assert_eq!(decode_and_consume_incoming_packet(&consumers, [vec![0xFB], vec![0x00; 3], vec![0xFC], vec![0x00; 11], vec![0xFD], vec![0x00; 64]].concat()), Ok(()));
     }
 }
