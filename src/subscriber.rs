@@ -1,21 +1,22 @@
 use std::alloc::System;
-use std::time::SystemTime;
+use std::time::{Duration, Instant};
 
 use zenoh;
 use zenoh::Wait;
+use zenoh::bytes::ZBytes;
 //use zenoh::pubsub::Subscriber;
 use zenoh::handlers::FifoChannelHandler;
 use zenoh::sample::Sample;
 
-pub struct Subs {
+pub struct Sub {
     subscriber : zenoh::pubsub::Subscriber<FifoChannelHandler<Sample>>,
     key : String,
-    start_time : SystemTime,
-    timed_bytes : timed_bytes
+    start_time : Instant,
+    timed_bytes : Vec<TimeStamp>
 }
-pub struct timed_bytes {
-    bytes : Vec<u8>,
-    times : Vec<SystemTime>
+struct TimeStamp {
+    bytes : u8,
+    time : Duration
 }
 
 pub fn start_session() -> zenoh::Session {
@@ -23,18 +24,15 @@ pub fn start_session() -> zenoh::Session {
 }
 
 
-impl Subs {
-    pub fn new(k : String, session : &zenoh::Session) -> Subs {
-        let start = SystemTime::now();
+impl Sub {
+    pub fn new(k : String, session : &zenoh::Session) -> Sub {
+        let start = Instant::now();
         let subscriber = session.declare_subscriber(&k).wait().unwrap();
-        Subs { 
+        Sub { 
             subscriber : subscriber,
             key : k,
             start_time : start,
-            timed_bytes : timed_bytes {
-                bytes : Vec::new(),
-                times : Vec::new()
-            }
+            timed_bytes : Vec::new()
         }
     }
     pub fn get_test(&self) {
@@ -42,20 +40,20 @@ impl Subs {
             println!("Received: {:?}", sample.payload());
         }
     }
-    pub fn get_bytes(&self) {
+    pub fn receive(&mut self) {
         while let Ok(sample) = self.subscriber.recv() {
-            sample.payload();
-        }
-    }
-    pub fn get_timed_bytes(&self) {
-        let time = SystemTime::now().duration_since(self.start_time);
-        while let Ok(sample) = self.subscriber.recv() {
-            sample.payload();
+            let time : Duration = self.start_time.elapsed();
+            for i in sample.payload().slices() {
+                self.timed_bytes.push(
+                TimeStamp {
+                    bytes: i[0], 
+                    time: time
+                }
+            );
+            }
+
             println!("Received: {:?}", sample.payload());
         }
     }
-    // get
-    // one with bytes
-    // one with struct for times and u8 arr
     
 }

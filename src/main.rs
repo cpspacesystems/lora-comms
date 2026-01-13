@@ -19,6 +19,6 @@ fn main() {
 
 
 
-// real struct and simulation struct
+// real struct and simulation struct, interface
 
 
