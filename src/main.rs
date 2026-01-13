@@ -1,27 +1,24 @@
-mod packet;
-mod configure;
-mod common;
-mod error;
+
 mod publisher;
 mod subscriber;
+fn main() {
+    let p = publisher::Pubs::new("test".to_string());
+    p.send_str("Hello World");
+    //let s = subscriber::Subs::new("test".to_string());
+    //s.get();
+}
+
 
 //lora radio code: tell zenoh when to get new data
 //goes through everything it needs to get (newest version of data) and puts it into flatbuffers
 //put flatbuffers into packets
 //send packets into lora
 //schedule packet to be sent over lora
-fn main() {
-    println!("Program starting");
 
-    let mut f_exit = false;
-    while !f_exit {
-        // grab stuff from zenoh and convert it to data section
-        // send said packet to LR1100 interface 
-        // configure LR1100 
-        // send bytes
-        //
-    }; 
-}
+// 8 bit enum instead of string key
 
+
+
+// real struct and simulation struct
 
 
