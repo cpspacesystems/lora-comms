@@ -5,7 +5,7 @@ set -e
 SCRIPT_PATH="$(readlink -f "${BASH_SOURCE[0]}")"
 SCRIPT_DIR="$(dirname -- "${SCRIPT_PATH}")"
 
-echo "compiling all flatbuffer schemas in ${SCRIPT_DIR}/*.fbs files to ${SCRIPT_DIR}/gen/flatbuffers/"
+echo "compiling all flatbuffer schemas in ${SCRIPT_DIR}/etc/*.fbs files to ${SCRIPT_DIR}/gen/flatbuffers/"
 
 cd "${SCRIPT_DIR}"
 
