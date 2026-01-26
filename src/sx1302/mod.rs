@@ -25,7 +25,19 @@ pub enum SX1302Error {
     #[error("TX is currently going, unable to perform RX operations.")]
     RXSuspended,
     
-    #[error("The provided device_com_path {0} can not be parsed into valid ASCII.")]
+    #[error("Encountered an error while trying to receive new packets from the SX1302!")]
+    TryReceiveFailed,
+
+    #[error("Encountered an error while trying to start the SX1302!")]
+    FailedToStart,
+    #[error("Encountered an error while trying to stop the SX1302!")]
+    FailedToStop,
+    #[error("Encountered an error while trying to get SX1302 temperature.")]
+    FailedToGetTemp,
+
+    #[error("The provided device_com_path `{0}` is too long. The max size of device_com_path supported is {1} bytes, but you passed a string that is {2} bytes!")]
+    ConfigCOMPathTooLong(String, usize, usize),
+    #[error("The provided device_com_path `{0}` contains a 0-byte(Null Terminator) and can not be parsed.")]
     ConfigUnparsableCOMPath(String),
     #[error("The configuration provided for board configuration is invalid. Check the device section of conf.rs")]
     ConfigBoardSetConfError,
@@ -40,6 +52,6 @@ pub enum SX1302Error {
     #[error("The provided Tx Gains configuration for radio {0} is invalid. Check the Tx Gains section for radio {0} in conf.rs")]
     ConfigTxGainSetConfError(u8),
     
-    #[error("The provided  configuration is invalid. Check the  section in conf.rs")]
+    #[error("The provided configuration is invalid. Check the  section in conf.rs")]
     Config,
 }

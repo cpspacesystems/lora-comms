@@ -28,13 +28,18 @@ pub enum StatusRX {
 
 pub struct ImplPhysicalSX1302 {}
 impl SX1302 for ImplPhysicalSX1302 {
+    /// configures the SX1302 radio
     fn configure(config: conf::SX1302Configuration) -> Result<(), SX1302Error> {
         // board configuration
         let mut com_path: [ffi::c_char; 64] = [0; 64]; 
         let cstr = if let Ok(v) = ffi::CString::new(config.device_com_path) { v } else {
             return Err(SX1302Error::ConfigUnparsableCOMPath(config.device_com_path.to_string()))
         };
+        if cstr.count_bytes() > std::mem::size_of_val(&com_path) {
+            return Err(SX1302Error::ConfigCOMPathTooLong(config.device_com_path.to_string(), cstr.count_bytes(), std::mem::size_of_val(&com_path)));
+        }
         unsafe {
+            // SAFETY: cstr is guranteed to be initialized at this point, and guranteed to fit into com_path)
             std::ptr::copy_nonoverlapping(cstr.as_ptr(), com_path.as_mut_ptr(), cstr.count_bytes());
             
             let mut conf = lgw_conf_board_s {
@@ -147,147 +152,91 @@ impl SX1302 for ImplPhysicalSX1302 {
         Ok(())
     }
 
-    fn start() -> Result<(), super::SX1302Error> {
-        todo!()
+    /// Start the SX1302 radio
+    fn start() -> Result<(), SX1302Error> {
+        unsafe {
+            if LGW_HAL_SUCCESS != lgw_start() {
+                return Err(SX1302Error::FailedToStart);
+            }
+        }
+        println!("INFO SX1302: Gateway susscessfully started operation.");
+        Ok(())
     }
 
-    fn stop() -> Result<(), super::SX1302Error> {
-        todo!()
+    /// Stop the SX1302 radio
+    fn stop() -> Result<(), SX1302Error> {
+        unsafe  {
+            if LGW_HAL_SUCCESS != lgw_stop() {
+                return Err(SX1302Error::FailedToStop) ;
+            }
+        }
+        println!("INFO SX1302: Gateway susscessfully stopped operation.");
+        Ok(())
     }
 
-    fn try_receive() -> Result<Vec<Vec<u8>>, super::SX1302Error> {
-        todo!()
+    /// try receiving packets from sx1302, only valid packets are returned
+    fn try_receive() -> Result<Vec<Vec<u8>>, SX1302Error> {
+        // SAFETY: RawPacketHolder can be zero initialized 
+        let mut holder: RawPacketHolder = unsafe { MaybeUninit::zeroed().assume_init() }; 
+        let count = match unsafe { lgw_receive(RAW_PACKET_HOLDER_SIZE, &mut holder.packets as *mut lgw_pkt_rx_s) } {
+            LGW_HAL_ERROR => return Err(SX1302Error::TryReceiveFailed),
+            v => v
+        };
+        
+        let mut raw_data: Vec<Vec<u8>> = Vec::with_capacity(count as usize); 
+        for i in 0..count as usize {
+            let packet = &holder.packets[i];
+            println!("INFO SX1302: Got new packet: {:#?}", packet);
+            
+            if RxPacketStatus::check_status(packet.status, RxPacketStatus::GoodCRC).is_err() {
+                println!("WARN SX1302: last packet was bad due to CRC mismatch, skipping this packet!");
+                continue;
+            };
+
+            let mut vec = Vec::with_capacity(packet.size as usize); 
+            vec.copy_from_slice(&packet.payload[0..packet.size as usize]);
+            raw_data.push(vec);
+        }
+        Ok(raw_data)
     }
 
     fn try_send() -> Result<(), super::SX1302Error> {
         todo!()
     }
 
+    // Get the SX1302 temperature in degrees celcius
     fn get_temperature_celcius() -> Result<f32, super::SX1302Error> {
-        todo!()
+        let mut temp: f32 = 0.0;
+        unsafe {
+            if LGW_HAL_SUCCESS != lgw_get_temperature(&mut temp as *mut f32) {
+                return Err(SX1302Error::TryReceiveFailed);
+            };
+        }
+        Ok(temp)
     }
 }
-
-const RX_TX_RADIO_RF_CHAIN: u8 = 0;
-const RX_RADIO_RF_CHAIN: u8 = 1;
-/// configures the SX1302 radio
-pub fn configure(config: conf::SX1302Configuration) -> Result<(), ErrorType> {        
-    todo!()
-}
-
-/// Start the SX1302 radio
-pub fn start() -> Result<(), ErrorType> {
-    unsafe {
-        check(lgw_start())?;   
-    }
-    println!("INFO SX1302: Gateway susscessfully started operation.");
-    Ok(())
-}
-
-/// Stop the SX1302 radio
-pub fn stop() -> Result<(), ErrorType> {
-    unsafe  {
-        check(lgw_stop())?;
-    }
-    println!("INFO SX1302: Gateway susscessfully stopped operation.");
-    Ok(())
-}
-
-/// try receiving packets from sx1302, only valid packets are returned
-pub fn try_receive() -> Result<Vec<Vec<u8>>, ErrorType> {
-    let mut holder = unsafe { MaybeUninit::<RawPacketHolder>::zeroed().assume_init() }; 
-    let count = unsafe { LGWHalStatus::check_and_get(lgw_receive(RAW_PACKET_HOLDER_SIZE, &mut holder.packets as *mut lgw_pkt_rx_s))? };
-    
-    let mut raw_data: Vec<Vec<u8>> = Vec::with_capacity(count as usize); 
-    for i in 0..count as usize {
-        let packet = &holder.packets[i];
-        println!("INFO SX1302: Got new packet: {:#?}", packet);
-        
-        if RxPacketStatus::check_status(packet.status, RxPacketStatus::OkCRC).is_err() {
-            println!("WARN SX1302: last packet was bad due to CRC mismatch, skipping this packet!");
-            continue;
-        };
-
-        let mut vec = Vec::with_capacity(packet.size as usize); 
-        vec.copy_from_slice(&packet.payload[0..packet.size as usize]);
-        raw_data.push(vec);
-    }
-    Ok(raw_data)
-}    
 
 // Get the RX radio status
 pub fn get_status_rx() -> Result<StatusRX, ErrorType> {
-    let mut code: u8 = 0;
-    unsafe {
-        check(lgw_status(RX_RADIO_RF_CHAIN, bindings_loragw_hal::RX_STATUS, &mut code as *mut u8))?;
-    }
-    match code {
-        bindings_loragw_hal::RX_ON => Ok(StatusRX::On),
-        bindings_loragw_hal::RX_SUSPENDED => Ok(StatusRX::Suspended),
-        bindings_loragw_hal::RX_OFF => Ok(StatusRX::Off),
-        bindings_loragw_hal::RX_STATUS_UNKNOWN => Ok(StatusRX::Unknown),
-        _ => Ok(StatusRX::Unexpected)
-    }
+    unimplemented!()
+    // let mut code: u8 = 0;
+    // unsafe {
+    //     check(lgw_status(RX_RADIO_RF_CHAIN, bindings_loragw_hal::RX_STATUS, &mut code as *mut u8))?;
+    // }
+    // match code {
+    //     bindings_loragw_hal::RX_ON => Ok(StatusRX::On),
+    //     bindings_loragw_hal::RX_SUSPENDED => Ok(StatusRX::Suspended),
+    //     bindings_loragw_hal::RX_OFF => Ok(StatusRX::Off),
+    //     bindings_loragw_hal::RX_STATUS_UNKNOWN => Ok(StatusRX::Unknown),
+    //     _ => Ok(StatusRX::Unexpected)
+    // }
 }
 
-// Get the SX1302 temperature in degrees celcius
-pub fn get_temperature_celcius () -> Result<f32, ErrorType> {
-    let mut temp: f32 = 0.0;
-    unsafe {
-        check(lgw_get_temperature(&mut temp as *mut f32))?;
-    }
-    Ok(temp)
-}
 
 
 ///////////////
 /// Helpers ///
 ///////////////
-
-#[derive(Debug, PartialEq)]
-/// lgw hal c ffi return status codes
-enum LGWHalStatus {
-    SUCCESS,
-    ERROR,
-    LBTNotAllowed,
-    Unknown
-}
-impl LGWHalStatus {
-    // check if the status is Ok
-    fn check(status_code: ffi::c_int) -> Result<Self, Self> {
-        match status_code {
-            bindings_loragw_hal::LGW_HAL_SUCCESS => Ok(LGWHalStatus::SUCCESS),
-            bindings_loragw_hal::LGW_HAL_ERROR => Err(LGWHalStatus::ERROR), 
-            bindings_loragw_hal::LGW_LBT_NOT_ALLOWED => Err(LGWHalStatus::LBTNotAllowed),
-            _ => Err(LGWHalStatus::Unknown)
-        }
-    }
-
-    // check if the status is Ok, then return what ever number the status code is
-    fn check_and_get(status_code: ffi::c_int) -> Result<ffi::c_int, Self> {
-        match status_code {
-            bindings_loragw_hal::LGW_HAL_ERROR => Err(LGWHalStatus::ERROR),
-            // assume sussccess if not error
-            _ => Ok(status_code)
-        }
-    }
-    
-}
-impl fmt::Display for LGWHalStatus {
-    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        match self {
-            Self::SUCCESS => write!(f, "INFO SX1302: Gateway Success."),
-            Self::ERROR | Self::LBTNotAllowed => write!(f, "ERROR SX1302: Gateway error: {}", self),
-            Self::Unknown => write!(f, "ERROR SX1302: Gateway unknown error happened, application is in an undefined state!")
-        }
-    }
-}
-impl Error for LGWHalStatus {} 
-#[inline(always)]
-/// helper function to quickly check the status of c ffi return status codes
-fn check(status_code: ffi::c_int) -> Result<LGWHalStatus,LGWHalStatus> {LGWHalStatus::check(status_code)}
-
-
 
 /// Packet status codes
 #[derive(PartialEq)]
@@ -296,23 +245,25 @@ enum RxPacketStatus {
     Undefined,
     NoCRC,
     BadCRC,
-    OkCRC,
+    GoodCRC,
 }
 impl RxPacketStatus {
-    /// check if the return c status code matches an expected status enum
+    /// check if the return c status code matches an expected status enum, okay if expected, Err if not
     fn check_status(status: u8, expected: RxPacketStatus) -> Result<RxPacketStatus, RxPacketStatus>{
         match status {
             bindings_loragw_hal::STAT_UNDEFINED => if expected == RxPacketStatus::Undefined {Ok(RxPacketStatus::Undefined)} else {Err(RxPacketStatus::Undefined)}
             bindings_loragw_hal::STAT_NO_CRC => if expected == RxPacketStatus::NoCRC {Ok(RxPacketStatus::NoCRC)} else {Err(RxPacketStatus::NoCRC)}
             bindings_loragw_hal::STAT_CRC_BAD => if expected == RxPacketStatus::BadCRC {Ok(RxPacketStatus::BadCRC)} else {Err(RxPacketStatus::BadCRC)}
-            bindings_loragw_hal::STAT_CRC_OK => if expected == RxPacketStatus::OkCRC {Ok(RxPacketStatus::OkCRC)} else {Err(RxPacketStatus::OkCRC)}
+            bindings_loragw_hal::STAT_CRC_OK => if expected == RxPacketStatus::GoodCRC {Ok(RxPacketStatus::GoodCRC)} else {Err(RxPacketStatus::GoodCRC)}
             _ => if expected == RxPacketStatus::Unexpected {Ok(RxPacketStatus::Unexpected)} else {Err(RxPacketStatus::Unexpected)}
         }
     }
 }
 
 const RAW_PACKET_HOLDER_SIZE: u8 = 10;
-// holds up to 10 raw lora packets, type def to force C layout on rust array
+/// holds up to 10 raw lora packets, type def to force C layout on rust array
+///
+/// This struct can be properly initialized through zero initialization
 #[repr(C)]
 struct RawPacketHolder {
     packets: [lgw_pkt_rx_s; RAW_PACKET_HOLDER_SIZE as usize]
