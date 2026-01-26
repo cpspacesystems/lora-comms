@@ -380,6 +380,7 @@ pub struct lgw_tx_gain_s {
     /// (sx125x) 2 bits: control of the digital gain of SX1302 
     pub dig_gain: u8,  
     /// (sx125x) 2 bits: control of the external PA (SX1302 I/O)
+    /// 
     /// (sx1250) 1 bits: enable/disable the external PA (SX1302 I/O)
     pub pa_gain: u8, 
     /// (sx125x) 2 bits: control of the radio DAC 
