@@ -153,6 +153,7 @@ pub const LGW_SPECTRAL_SCAN_RESULT_SIZE: usize = 33;
 /* --- PUBLIC TYPES --------------------------------------------------------- */
 
 #[repr(C)]
+#[derive(Debug, Clone, Copy, PartialEq)]
 // imported from loragw_com.h
 pub enum lgw_com_type_t {
     LGW_COM_SPI,
@@ -331,6 +332,7 @@ pub struct lgw_pkt_rx_s {
 @brief Structure containing the configuration of a packet to send and a pointer to the payload
 */
 #[repr(C)]
+#[derive(Debug)]
 pub struct lgw_pkt_tx_s {
     /// center frequency of TX 
     pub freq_hz: u32,     

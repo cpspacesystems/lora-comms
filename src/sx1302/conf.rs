@@ -1,27 +1,9 @@
 use std::fmt::format;
 
-use crate::sx1302::bindings_loragw_hal::{self};
+use crate::sx1302::{bindings_loragw_hal::{self}, types::{Bandwidth, Radios}};
 
 type DeviceCOMType = bindings_loragw_hal::lgw_com_type_t;
 
-#[repr(u8)]
-#[derive(Debug, Clone, Copy, PartialEq)]
-pub enum Radios {
-    /// The radio capable of both receive and transmit
-    Radio0RxTx = 0,
-    /// The radio capable of only receiving
-    Radio1RxOnly = 1,
-}
-
-/// bandwidth for radio channels
-#[repr(u8)]
-#[derive(Debug, Clone, Copy, PartialEq)]
-pub enum Bandwidth {
-    Low125khz = bindings_loragw_hal::BW_125KHZ,
-    Mid250khz = bindings_loragw_hal::BW_250KHZ,
-    High500khz = bindings_loragw_hal::BW_500KHZ,
-    // no BW_UNDEFINED here, the default is explicitly defined here as Low125khz
-}
 
 #[derive(Debug, Clone, Copy, PartialEq)]
 pub enum DemodulatorLoraSFConfig {
@@ -217,6 +199,7 @@ pub enum RadioInputMode {
     Single,
     Differential
 }
+/// configuration of a radio on sx1302
 pub struct RadioConfig {
     /// is this radio enabled
     pub enable: bool,
@@ -238,9 +221,7 @@ pub struct RadioConfig {
 }
 
 
-/// Configuration structure for common SX1302 parameters
-/// Indepth configuration, such as configuration gains and offsets 
-/// can be done by changing values in the configure function of sc1302.rs
+/// Configuration structure for all SX1302 parameters
 pub struct SX1302Configuration {
 
     /// The COMmunication interface (SPI/USB) to connect to the SX1302
