@@ -1,27 +1,7 @@
 use std::{error::Error, ffi, fmt, mem::MaybeUninit};
 
-use crate::sx1302::{MAX_PAYLOAD_SIZE, SX1302, bindings_loragw_hal::{self, LGW_HAL_ERROR, LGW_HAL_SUCCESS, lgw_board_setconf, lgw_com_type_t, lgw_conf_board_s, lgw_conf_chan_lbt_s, lgw_conf_demod_s, lgw_conf_ftime_s, lgw_conf_rxif_s, lgw_conf_rxrf_s, lgw_demod_setconf, lgw_ftime_mode_t, lgw_ftime_setconf, lgw_get_temperature, lgw_pkt_rx_s, lgw_pkt_tx_s, lgw_radio_type_t, lgw_receive, lgw_rssi_tcomp_s, lgw_rxif_setconf, lgw_rxrf_setconf, lgw_send, lgw_start, lgw_status, lgw_stop, lgw_tx_gain_lut_s, lgw_tx_gain_s, lgw_txgain_setconf}, conf::{self}}; 
-use crate::sx1302::SX1302Error;
+use crate::sx1302::{self, MAX_PAYLOAD_SIZE, Payload, SX1302, bindings_loragw_hal::{self, LGW_HAL_ERROR, LGW_HAL_SUCCESS, lgw_board_setconf, lgw_com_type_t, lgw_conf_board_s, lgw_conf_chan_lbt_s, lgw_conf_demod_s, lgw_conf_ftime_s, lgw_conf_rxif_s, lgw_conf_rxrf_s, lgw_demod_setconf, lgw_ftime_mode_t, lgw_ftime_setconf, lgw_get_temperature, lgw_pkt_rx_s, lgw_pkt_tx_s, lgw_radio_type_t, lgw_receive, lgw_rssi_tcomp_s, lgw_rxif_setconf, lgw_rxrf_setconf, lgw_send, lgw_start, lgw_status, lgw_stop, lgw_tx_gain_lut_s, lgw_tx_gain_s, lgw_txgain_setconf}, conf::{self}, error::{ConfigureError, FailedToGetStatus, FailedToGetTemp, FailedToStart, FailedToStop, FailedToTryReceive, TrySendError}}; 
 use crate::sx1302::types::*;
-
-/////////////
-/// Types ///
-/////////////
-
-/// Common application error type
-pub type ErrorType = Box<dyn Error + Send + Sync>; // this is not be best pratice, but I'm too lazy for now to make something good
-
-/// rx status codes
-pub enum StatusRX {
-    Unexpected,
-    Unknown, 
-    /// RX modem is disabled, it will ignore commands
-    Off,
-    /// RX modem is receiving
-    On,
-    /// RX is suspended while a TX is ongoing
-    Suspended,
-}
 
 /////////////////
 /// Functions ///
@@ -32,6 +12,11 @@ pub struct ImplPhysicalSX1302 {
     is_configured: bool,
     // this array must be sorted
     valid_rf_power_levels: Vec<i8>,
+}
+impl Default for ImplPhysicalSX1302 {
+    fn default() -> Self where Self: Sized {
+        Self::new(conf::DEFAULT_SX1302_CONFIG)
+    }
 }
 impl SX1302 for ImplPhysicalSX1302 {
     /// creates a new SX1302 radio with configuration
@@ -44,16 +29,16 @@ impl SX1302 for ImplPhysicalSX1302 {
     }
 
     /// configures the SX1302 radio
-    fn configure(&mut self) -> Result<(), SX1302Error> {
+    fn configure(&mut self) -> Result<(), ConfigureError> {
         let config = &self.config;
 
         // board configuration
         let mut com_path: [ffi::c_char; 64] = [0; 64]; 
         let cstr = if let Ok(v) = ffi::CString::new(config.device_com_path) { v } else {
-            return Err(SX1302Error::ConfigUnparsableCOMPath(config.device_com_path.to_string()))
+            return Err(ConfigureError::ConfigUnparsableCOMPath(config.device_com_path.to_string()))
         };
         if cstr.count_bytes() > std::mem::size_of_val(&com_path) {
-            return Err(SX1302Error::ConfigCOMPathTooLong(config.device_com_path.to_string(), cstr.count_bytes(), std::mem::size_of_val(&com_path)));
+            return Err(ConfigureError::ConfigCOMPathTooLong(config.device_com_path.to_string(), cstr.count_bytes(), std::mem::size_of_val(&com_path)));
         }
         unsafe {
             // SAFETY: cstr is guranteed to be initialized at this point, and guranteed to fit into com_path)
@@ -68,7 +53,7 @@ impl SX1302 for ImplPhysicalSX1302 {
             };
 
             if LGW_HAL_SUCCESS != lgw_board_setconf(&mut conf as *mut lgw_conf_board_s) {
-                return Err(SX1302Error::ConfigBoardSetConfError);
+                return Err(ConfigureError::ConfigBoardSetConfError);
             } 
         }
 
@@ -82,7 +67,7 @@ impl SX1302 for ImplPhysicalSX1302 {
             };
 
             if LGW_HAL_SUCCESS != lgw_demod_setconf(&mut conf as *mut lgw_conf_demod_s) {
-                return Err(SX1302Error::ConfigDemodSetConfError);
+                return Err(ConfigureError::ConfigDemodSetConfError);
             };
         }
 
@@ -98,7 +83,7 @@ impl SX1302 for ImplPhysicalSX1302 {
             };
 
             if LGW_HAL_SUCCESS != lgw_ftime_setconf(&mut conf as *mut lgw_conf_ftime_s) {
-                return Err(SX1302Error::ConfigFineTimestampSetConfError)
+                return Err(ConfigureError::ConfigFineTimestampSetConfError)
             };
         }
 
@@ -109,20 +94,20 @@ impl SX1302 for ImplPhysicalSX1302 {
             // channel 8 is for set SF 125/250/500khz channels, channel 9 is for FSK trafic  
 
             // Multi-SF 125khz channels
-            if LGW_HAL_SUCCESS != lgw_rxif_setconf(0, &config.rx_0_lora as *const lgw_conf_rxif_s as *mut lgw_conf_rxif_s) { return Err(SX1302Error::ConfigRxIFSetConfError(0))};
-            if LGW_HAL_SUCCESS != lgw_rxif_setconf(1, &config.rx_1_lora as *const lgw_conf_rxif_s as *mut lgw_conf_rxif_s) { return Err(SX1302Error::ConfigRxIFSetConfError(1))};
-            if LGW_HAL_SUCCESS != lgw_rxif_setconf(2, &config.rx_2_lora as *const lgw_conf_rxif_s as *mut lgw_conf_rxif_s) { return Err(SX1302Error::ConfigRxIFSetConfError(2))};
-            if LGW_HAL_SUCCESS != lgw_rxif_setconf(3, &config.rx_3_lora as *const lgw_conf_rxif_s as *mut lgw_conf_rxif_s) { return Err(SX1302Error::ConfigRxIFSetConfError(3))};
-            if LGW_HAL_SUCCESS != lgw_rxif_setconf(4, &config.rx_4_lora as *const lgw_conf_rxif_s as *mut lgw_conf_rxif_s) { return Err(SX1302Error::ConfigRxIFSetConfError(4))};
-            if LGW_HAL_SUCCESS != lgw_rxif_setconf(5, &config.rx_5_lora as *const lgw_conf_rxif_s as *mut lgw_conf_rxif_s) { return Err(SX1302Error::ConfigRxIFSetConfError(5))};
-            if LGW_HAL_SUCCESS != lgw_rxif_setconf(6, &config.rx_6_lora as *const lgw_conf_rxif_s as *mut lgw_conf_rxif_s) { return Err(SX1302Error::ConfigRxIFSetConfError(6))};
-            if LGW_HAL_SUCCESS != lgw_rxif_setconf(7, &config.rx_7_lora as *const lgw_conf_rxif_s as *mut lgw_conf_rxif_s) { return Err(SX1302Error::ConfigRxIFSetConfError(7))};
+            if LGW_HAL_SUCCESS != lgw_rxif_setconf(0, &config.rx_0_lora as *const lgw_conf_rxif_s as *mut lgw_conf_rxif_s) { return Err(ConfigureError::ConfigRxIFSetConfError(0))};
+            if LGW_HAL_SUCCESS != lgw_rxif_setconf(1, &config.rx_1_lora as *const lgw_conf_rxif_s as *mut lgw_conf_rxif_s) { return Err(ConfigureError::ConfigRxIFSetConfError(1))};
+            if LGW_HAL_SUCCESS != lgw_rxif_setconf(2, &config.rx_2_lora as *const lgw_conf_rxif_s as *mut lgw_conf_rxif_s) { return Err(ConfigureError::ConfigRxIFSetConfError(2))};
+            if LGW_HAL_SUCCESS != lgw_rxif_setconf(3, &config.rx_3_lora as *const lgw_conf_rxif_s as *mut lgw_conf_rxif_s) { return Err(ConfigureError::ConfigRxIFSetConfError(3))};
+            if LGW_HAL_SUCCESS != lgw_rxif_setconf(4, &config.rx_4_lora as *const lgw_conf_rxif_s as *mut lgw_conf_rxif_s) { return Err(ConfigureError::ConfigRxIFSetConfError(4))};
+            if LGW_HAL_SUCCESS != lgw_rxif_setconf(5, &config.rx_5_lora as *const lgw_conf_rxif_s as *mut lgw_conf_rxif_s) { return Err(ConfigureError::ConfigRxIFSetConfError(5))};
+            if LGW_HAL_SUCCESS != lgw_rxif_setconf(6, &config.rx_6_lora as *const lgw_conf_rxif_s as *mut lgw_conf_rxif_s) { return Err(ConfigureError::ConfigRxIFSetConfError(6))};
+            if LGW_HAL_SUCCESS != lgw_rxif_setconf(7, &config.rx_7_lora as *const lgw_conf_rxif_s as *mut lgw_conf_rxif_s) { return Err(ConfigureError::ConfigRxIFSetConfError(7))};
         
             // Set SF Any Bandwidth channels
-            if LGW_HAL_SUCCESS != lgw_rxif_setconf(8, &config.rx_8_lora_any_bandwidth as *const lgw_conf_rxif_s as *mut lgw_conf_rxif_s) { return Err(SX1302Error::ConfigRxIFSetConfError(8));}
+            if LGW_HAL_SUCCESS != lgw_rxif_setconf(8, &config.rx_8_lora_any_bandwidth as *const lgw_conf_rxif_s as *mut lgw_conf_rxif_s) { return Err(ConfigureError::ConfigRxIFSetConfError(8));}
 
             // (G)FSK channel
-            if LGW_HAL_SUCCESS != lgw_rxif_setconf(9, &config.rx_9_fsk as *const lgw_conf_rxif_s as *mut lgw_conf_rxif_s) { return Err(SX1302Error::ConfigRxIFSetConfError(9))};
+            if LGW_HAL_SUCCESS != lgw_rxif_setconf(9, &config.rx_9_fsk as *const lgw_conf_rxif_s as *mut lgw_conf_rxif_s) { return Err(ConfigureError::ConfigRxIFSetConfError(9))};
         }
 
         // radio 0 (RX TX) configuration
@@ -137,7 +122,7 @@ impl SX1302 for ImplPhysicalSX1302 {
                 single_input_mode: config.radio_0_rx_tx.input_mode == conf::RadioInputMode::Single,
             }; 
             if LGW_HAL_SUCCESS != lgw_rxrf_setconf(Radios::Radio0RxTx as u8, &mut conf as *mut lgw_conf_rxrf_s) {
-                return Err(SX1302Error::ConfigRxRFSetConfError(Radios::Radio0RxTx as u8));
+                return Err(ConfigureError::ConfigRxRFSetConfError(Radios::Radio0RxTx as u8));
             };
         }
 
@@ -153,7 +138,7 @@ impl SX1302 for ImplPhysicalSX1302 {
                 single_input_mode: config.radio_1_rx_only.input_mode == conf::RadioInputMode::Single,
             }; 
             if LGW_HAL_SUCCESS != lgw_rxrf_setconf(Radios::Radio1RxOnly as u8, &mut conf as *mut lgw_conf_rxrf_s) {
-                return Err(SX1302Error::ConfigRxRFSetConfError(Radios::Radio1RxOnly as u8));
+                return Err(ConfigureError::ConfigRxRFSetConfError(Radios::Radio1RxOnly as u8));
             };
         }
 
@@ -162,7 +147,7 @@ impl SX1302 for ImplPhysicalSX1302 {
             let conf = &config.tx_gains;
             // SAFETY: lgw_txgain_setconf shouldn't modify conf
             if LGW_HAL_SUCCESS != lgw_txgain_setconf(Radios::Radio0RxTx as u8, conf as *const lgw_tx_gain_lut_s as *mut lgw_tx_gain_lut_s) {
-                return Err(SX1302Error::ConfigTxGainSetConfError(Radios::Radio0RxTx as u8));
+                return Err(ConfigureError::ConfigTxGainSetConfError(Radios::Radio0RxTx as u8));
             }
         }
         // sets valid rf_power levels
@@ -180,10 +165,10 @@ impl SX1302 for ImplPhysicalSX1302 {
     }
 
     /// Start the SX1302 radio
-    fn start(&mut self) -> Result<(), SX1302Error> {
+    fn start(&mut self) -> Result<(), FailedToStart> {
         unsafe {
             if LGW_HAL_SUCCESS != lgw_start() {
-                return Err(SX1302Error::FailedToStart);
+                return Err(FailedToStart);
             }
         }
         println!("INFO SX1302: Gateway susscessfully started operation.");
@@ -191,10 +176,10 @@ impl SX1302 for ImplPhysicalSX1302 {
     }
 
     /// Stop the SX1302 radio
-    fn stop(&mut self) -> Result<(), SX1302Error> {
+    fn stop(&mut self) -> Result<(), FailedToStop> {
         unsafe  {
             if LGW_HAL_SUCCESS != lgw_stop() {
-                return Err(SX1302Error::FailedToStop) ;
+                return Err(FailedToStop) ;
             }
         }
         println!("INFO SX1302: Gateway susscessfully stopped operation.");
@@ -202,17 +187,17 @@ impl SX1302 for ImplPhysicalSX1302 {
     }
 
     /// try receiving packets from sx1302, only valid packets are returned
-    fn try_receive(&mut self) -> Result<Vec<Vec<u8>>, SX1302Error> {
-        // SAFETY: RawPacketHolder can be zero initialized 
-        let mut holder: RawPacketHolder = unsafe { MaybeUninit::zeroed().assume_init() }; 
-        let count = match unsafe { lgw_receive(RAW_PACKET_HOLDER_SIZE, &mut holder.packets as *mut lgw_pkt_rx_s) } {
-            LGW_HAL_ERROR => return Err(SX1302Error::TryReceiveFailed),
+    fn try_receive(&mut self) -> Result<FixedVec<FixedVec<u8, { sx1302::MAX_PAYLOAD_SIZE }>, { sx1302::MAX_RAW_PAYLOAD_HOLDER_SIZE }>, FailedToTryReceive> {
+        // SAFETY: lgw_pkt_rx_s can be zero initialized 
+        let mut packets: [lgw_pkt_rx_s; sx1302::MAX_RAW_PAYLOAD_HOLDER_SIZE as usize] = unsafe { MaybeUninit::zeroed().assume_init() }; 
+        let count = match unsafe { lgw_receive(sx1302::MAX_RAW_PAYLOAD_HOLDER_SIZE as u8, &mut packets as *mut lgw_pkt_rx_s) } {
+            LGW_HAL_ERROR => return Err(FailedToTryReceive),
             v => v
         };
         
-        let mut raw_data: Vec<Vec<u8>> = Vec::with_capacity(count as usize); 
+        let mut raw_data = FixedVec::new(Payload::new(0));
         for i in 0..count as usize {
-            let packet = &holder.packets[i];
+            let packet = &packets[i];
             println!("INFO SX1302: Got new packet: {:#?}", packet);
             
             if RxPacketStatus::check_status(packet.status, RxPacketStatus::GoodCRC).is_err() {
@@ -220,22 +205,24 @@ impl SX1302 for ImplPhysicalSX1302 {
                 continue;
             };
 
-            let mut vec = Vec::with_capacity(packet.size as usize); 
-            vec.copy_from_slice(&packet.payload[0..packet.size as usize]);
-            raw_data.push(vec);
+            let mut vec = Payload::new(0); 
+            if vec.concat_from_slice(&packet.payload[0..packet.size as usize]).is_err() 
+                { return Err(FailedToTryReceive); }; // bascially impossible to happen, but let's not panic ever
+            if raw_data.push(vec).is_err() 
+                { return Err(FailedToTryReceive); }; // bascially impossible to happen, but let's not panic ever
         }
         Ok(raw_data)
     }
 
     /// try sending a packet from sx1302
-    fn try_send(&mut self, packet_config: OutgoingPacketConfig, payload: Vec<u8>) -> Result<(), SX1302Error> {
+    fn try_send(&mut self, packet_config: OutgoingPacketConfig, payload: Payload) -> Result<(), TrySendError> {
         if payload.len() > MAX_PAYLOAD_SIZE {
-            return Err(SX1302Error::PayloadTooLarge(payload.len(), MAX_PAYLOAD_SIZE));
+            return Err(TrySendError::PayloadTooLarge(payload.len(), MAX_PAYLOAD_SIZE));
         }
 
         // ensure that the Tx Radio is not occupied
         if !self.get_radio_status(Radios::Radio0RxTx).is_ok_and(|s| s == RadioStatus::Avaliable) {
-            return Err(SX1302Error::RadioBusy);
+            return Err(TrySendError::RadioBusy);
         }
 
         // SAFETY: lgw_pkt_tx_s can be safely initialized with 0 values
@@ -253,7 +240,7 @@ impl SX1302 for ImplPhysicalSX1302 {
         packet.rf_power = if self.valid_rf_power_levels.binary_search(&packet.rf_power).is_ok() {
             packet_config.rf_power
         } else {
-            return Err(SX1302Error::PacketRfPowerUndefined(packet_config.rf_power));
+            return Err(TrySendError::PacketRfPowerUndefined(packet_config.rf_power));
         };
         packet.modulation = match packet_config.modulation {
             OutgoingPacketModulation::CW { freq_offset_hz } => {
@@ -264,9 +251,9 @@ impl SX1302 for ImplPhysicalSX1302 {
             OutgoingPacketModulation::FSK { freq_deviation_khz, baudrate, preamble_length, fixed_length: fixed_langth } => {
                 packet.f_dev = freq_deviation_khz;
                 packet.datarate = if 500 <= baudrate && baudrate <= 250000 { baudrate }
-                    else { return Err(SX1302Error::PacketFSKInvalidBaudrate(baudrate)); };
+                    else { return Err(TrySendError::PacketFSKInvalidBaudrate(baudrate)); };
                 packet.preamble = if 3 <= preamble_length { preamble_length } 
-                    else { return Err(SX1302Error::PacketPreambleLengthTooShort(preamble_length, 3)); };
+                    else { return Err(TrySendError::PacketPreambleLengthTooShort(preamble_length, 3)); };
                 packet.no_header = fixed_langth;
 
                 bindings_loragw_hal::MOD_FSK
@@ -274,12 +261,12 @@ impl SX1302 for ImplPhysicalSX1302 {
             OutgoingPacketModulation::LoRa { bandwidth, spread_factor, coderate, no_header, invert_polarity, preamble_length } => {
                 packet.bandwidth = bandwidth as u8;
                 packet.datarate = if 5 <= spread_factor && spread_factor <= 12 { spread_factor } 
-                    else { return Err(SX1302Error::PacketLoraSFUnsupported(spread_factor)); };
+                    else { return Err(TrySendError::PacketLoraSFUnsupported(spread_factor)); };
                 packet.coderate = coderate as u8;
                 packet.no_header = no_header;
                 packet.invert_pol = invert_polarity;
                 packet.preamble = if 6 <= preamble_length { preamble_length } 
-                    else { return Err(SX1302Error::PacketPreambleLengthTooShort(preamble_length, 6)); };
+                    else { return Err(TrySendError::PacketPreambleLengthTooShort(preamble_length, 6)); };
                 
                 bindings_loragw_hal::MOD_LORA
             },
@@ -293,23 +280,23 @@ impl SX1302 for ImplPhysicalSX1302 {
 
         if LGW_HAL_SUCCESS != unsafe { lgw_send(&mut packet as *mut lgw_pkt_tx_s) } {
             println!("WARN SX1302: Failed to send packet, with content: {:?}", packet);
-            return Err(SX1302Error::TrySendFailed);
+            return Err(TrySendError::FailedToTrySend);
         };
 
         Ok(())
     }
 
     /// gets the current status of a radio on the SX1302
-    fn get_radio_status(&mut self, radio: Radios) -> Result<RadioStatus, SX1302Error> {
+    fn get_radio_status(&mut self, radio: Radios) -> Result<RadioStatus, FailedToGetStatus> {
         let mut rx_status_code: u8 = 0;
 
         if LGW_HAL_SUCCESS != unsafe { lgw_status(radio as u8, bindings_loragw_hal::RX_STATUS, &mut rx_status_code as *mut u8) } {
-            return Err(SX1302Error::FailedToGetStatus(radio as u8));
+            return Err(FailedToGetStatus(radio as u8));
         };
 
         let mut tx_status_code: u8 = 0;
         if LGW_HAL_SUCCESS != unsafe { lgw_status(radio as u8, bindings_loragw_hal::TX_STATUS, &mut tx_status_code as *mut u8) } {
-            return Err(SX1302Error::FailedToGetStatus(radio as u8));
+            return Err(FailedToGetStatus(radio as u8));
         };
 
         match (tx_status_code, rx_status_code) {
@@ -324,11 +311,11 @@ impl SX1302 for ImplPhysicalSX1302 {
     }
 
     /// Get the SX1302 temperature in degrees celcius
-    fn get_temperature_celcius(&mut self, ) -> Result<f32, SX1302Error> {
+    fn get_temperature_celcius(&mut self, ) -> Result<f32, FailedToGetTemp> {
         let mut temp: f32 = 0.0;
         unsafe {
             if LGW_HAL_SUCCESS != lgw_get_temperature(&mut temp as *mut f32) {
-                return Err(SX1302Error::TryReceiveFailed);
+                return Err(FailedToGetTemp);
             };
         }
         Ok(temp)
@@ -361,12 +348,5 @@ impl RxPacketStatus {
     }
 }
 
-const RAW_PACKET_HOLDER_SIZE: u8 = 10;
-/// holds up to 10 raw lora packets, type def to force C layout on rust array
-///
-/// This struct can be properly initialized through zero initialization
-#[repr(C)]
-struct RawPacketHolder {
-    packets: [lgw_pkt_rx_s; RAW_PACKET_HOLDER_SIZE as usize]
-}
+
 
