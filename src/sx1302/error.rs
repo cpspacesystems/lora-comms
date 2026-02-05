@@ -2,7 +2,7 @@ use thiserror::Error;
 
 #[derive(Error, Debug, PartialEq)]
 #[error("AssertFailure: {0}")]
-/// Generic assertion failure due to most likely programmer error.
+/// Generic assertion failure to respersent some program condition where we can't continue
 pub struct AssertFailure(pub String);
 /// an assert macro similar to assert!, except an Err(AssertFailure) is returned as an result instead of panic.
 macro_rules! assert_no_panic {
@@ -19,7 +19,7 @@ macro_rules! assert_no_panic {
 }
 pub(super) use assert_no_panic as assert_np;
 
-/// all configuration errors
+/// all errors for configure
 #[derive(Error, Debug, PartialEq)]
 pub enum ConfigureError {
     #[error("The provided device_com_path `{0}` is too long. The max size of device_com_path supported is {1} bytes, but you passed a string that is {2} bytes!")]

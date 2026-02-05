@@ -174,6 +174,7 @@ pub enum lgw_com_write_mode_t {
 @brief Radio types that can be found on the LoRa Gateway
 */
 #[repr(C)]
+#[derive(PartialEq)]
 pub enum lgw_radio_type_t {
     LGW_RADIO_TYPE_NONE,
     LGW_RADIO_TYPE_SX1255,
@@ -188,6 +189,7 @@ pub enum lgw_radio_type_t {
 @brief Configuration structure for board specificities
 */
 #[repr(C)]
+#[derive(Debug, PartialEq)]
 pub struct lgw_conf_board_s {
     /// Enable ONLY for *public* networks using the LoRa MAC protocol 
     pub lorawan_public: bool,
@@ -206,6 +208,7 @@ pub struct lgw_conf_board_s {
 @brief Structure containing all coefficients necessary to compute the offset to be applied on RSSI for current temperature
 */
 #[repr(C)]
+#[derive(PartialEq)]
 pub struct lgw_rssi_tcomp_s {
     pub coeff_a: ffi::c_float,
     pub coeff_b: ffi::c_float,
@@ -219,6 +222,7 @@ pub struct lgw_rssi_tcomp_s {
 @brief Configuration structure for a RF chain
 */
 #[repr(C)]
+#[derive(PartialEq)]
 pub struct lgw_conf_rxrf_s {
     /// enable or disable that RF chain
     pub enable: bool,
@@ -242,6 +246,7 @@ pub struct lgw_conf_rxrf_s {
 */
 #[repr(C)]
 #[derive(Debug, Clone, Copy, Default)]
+#[derive(PartialEq)]
 pub struct lgw_conf_rxif_s {
     /// enable or disable that IF chain
     pub enable: bool, 
@@ -272,6 +277,7 @@ pub struct lgw_conf_rxif_s {
 @brief Configuration structure for LoRa/FSK demodulators
 */
 #[repr(C)]
+#[derive(PartialEq)]
 pub struct lgw_conf_demod_s {
     /// bitmask to enable spreading-factors for correlators (SF12 - SF5) 
     pub multisf_datarate: u8
@@ -284,6 +290,7 @@ pub struct lgw_conf_demod_s {
 #[repr(C)]
 #[derive(Debug)]
 #[derive(Clone, Copy)]
+#[derive(PartialEq)]
 pub struct lgw_pkt_rx_s {
     /// central frequency of the IF chain 
     pub freq_hz: u32,        
@@ -333,6 +340,7 @@ pub struct lgw_pkt_rx_s {
 */
 #[repr(C)]
 #[derive(Debug)]
+#[derive(PartialEq)]
 pub struct lgw_pkt_tx_s {
     /// center frequency of TX 
     pub freq_hz: u32,     
@@ -376,6 +384,7 @@ pub struct lgw_pkt_tx_s {
 */
 #[repr(C)]
 #[derive(Debug, Clone, Copy, Default)]
+#[derive(PartialEq)]
 pub struct lgw_tx_gain_s {
     /// measured TX power at the board connector, in dBm 
     pub rf_power: i8,  
@@ -402,6 +411,7 @@ pub struct lgw_tx_gain_s {
 @brief Structure defining the Tx gain LUT
 */
 #[repr(C)]
+#[derive(PartialEq)]
 pub struct lgw_tx_gain_lut_s {
     /// Array of Tx gain struct 
     pub lut: [lgw_tx_gain_s; TX_GAIN_LUT_SIZE_MAX], 
@@ -431,6 +441,7 @@ pub struct lgw_conf_debug_s {
 @brief Fine timestamping modes
 */
 #[repr(C)]
+#[derive(PartialEq)]
 pub enum lgw_ftime_mode_t {
     /// fine timestamps for SF5 -> SF10 
     LGW_FTIME_MODE_HIGH_CAPACITY,  
@@ -443,6 +454,7 @@ pub enum lgw_ftime_mode_t {
 @brief Configuration structure for fine timestamping
 */
 #[repr(C)]
+#[derive(PartialEq)]
 pub struct lgw_conf_ftime_s {
     /// Enable / Disable fine timestamping 
     pub enable: bool,             

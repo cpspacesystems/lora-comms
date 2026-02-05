@@ -3,6 +3,11 @@ use std::array;
 
 use crate::sx1302::{self, bindings_loragw_hal, error::{AssertFailure, assert_np}, types};
 
+///////////////////////////////////////////
+/// All common data types and functions ///
+///////////////////////////////////////////
+
+
 /// Radios present on the SX1302
 #[repr(u8)]
 #[derive(Debug, Clone, Copy, PartialEq)]
