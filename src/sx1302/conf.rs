@@ -200,6 +200,9 @@ pub enum RadioInputMode {
     Differential
 }
 /// configuration of a radio on sx1302
+#[derive(Debug)]
+#[derive(PartialEq)]
+#[derive(Clone, Copy)]
 pub struct RadioConfig {
     /// is this radio enabled
     pub enable: bool,
@@ -222,6 +225,9 @@ pub struct RadioConfig {
 
 
 /// Configuration structure for all SX1302 parameters
+#[derive(Debug)]
+#[derive(PartialEq)]
+#[derive(Clone, Copy)]
 pub struct SX1302Configuration {
 
     /// The COMmunication interface (SPI/USB) to connect to the SX1302

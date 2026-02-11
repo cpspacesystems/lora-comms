@@ -3,9 +3,9 @@ use std::array;
 
 use crate::sx1302::{self, bindings_loragw_hal, error::{AssertFailure, assert_np}, types};
 
-///////////////////////////////////////////
-/// All common data types and functions ///
-///////////////////////////////////////////
+//////////////////////////////////////////////////
+/// All common public data types and functions ///
+//////////////////////////////////////////////////
 
 
 /// Radios present on the SX1302
@@ -157,7 +157,7 @@ impl<T: std::marker::Copy, const N: usize> FixedVec<T, N> {
     /// 
     /// assert fails when the FixedVec can not take more data
     pub fn concat_from_slice(&mut self, data: &[T]) -> Result<(), AssertFailure> {
-        assert_np!(self.size + data.len() < self.data.len(), "Can not concat data of size {} as FixedVec is already of size {} and will overflow if this slice is pushed.", self.size, data.len());
+        assert_np!(self.size + data.len() <= self.data.len(), "Can not concat data of size {} as FixedVec is already of size {} and will overflow if this slice is pushed.", self.size, data.len());
         self.data[self.size..data.len()].copy_from_slice(data);
         self.size += data.len();
         Ok(())
@@ -245,6 +245,11 @@ mod test_payload {
 
         p1.push(30).unwrap();
         assert_eq!(p1.as_slice()[250], 30);
+
+        let mut p2 = FixedVec::<u8, 256>::new(0);
+        p2.concat_from_slice(&[0; 256]).unwrap();
+        assert_eq!(p2.len(), 256);
+        assert_eq!(p2.as_slice(), [0; 256]);
     }
 
     #[test]
