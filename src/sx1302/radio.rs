@@ -25,7 +25,7 @@ impl<'a> Default for SX1302<'a, PhysicalDevice> {
 }
 impl<'a, B: DeviceBackingAPI> SX1302<'a, B> {
     /// creates a new SX1302 radio with configuration
-    fn new(config: conf::SX1302Configuration, backing_api: &'a mut B) -> Self {
+    pub fn new(config: conf::SX1302Configuration, backing_api: &'a mut B) -> Self {
         SX1302::<B> { 
             driver_api: backing_api,
             config,
@@ -34,7 +34,7 @@ impl<'a, B: DeviceBackingAPI> SX1302<'a, B> {
     }
 
     /// configures the SX1302 radio
-    fn configure(&mut self) -> Result<(), ConfigureError> {
+    pub fn configure(&mut self) -> Result<(), ConfigureError> {
         let config = &self.config;
 
         // board configuration
@@ -168,7 +168,7 @@ impl<'a, B: DeviceBackingAPI> SX1302<'a, B> {
     }
 
     /// Start the SX1302 radio
-    fn start(&mut self) -> Result<(), FailedToStart> {
+    pub fn start(&mut self) -> Result<(), FailedToStart> {
         unsafe {
             if LGW_HAL_SUCCESS != self.driver_api.lgw_start() {
                 return Err(FailedToStart);
@@ -179,7 +179,7 @@ impl<'a, B: DeviceBackingAPI> SX1302<'a, B> {
     }
 
     /// Stop the SX1302 radio
-    fn stop(&mut self) -> Result<(), FailedToStop> {
+    pub fn stop(&mut self) -> Result<(), FailedToStop> {
         unsafe  {
             if LGW_HAL_SUCCESS != self.driver_api.lgw_stop() {
                 return Err(FailedToStop) ;
@@ -190,7 +190,7 @@ impl<'a, B: DeviceBackingAPI> SX1302<'a, B> {
     }
 
     /// try receiving packets from sx1302, only valid packets are returned
-    fn try_receive(&mut self) -> Result<Vec<Vec<u8>>, FailedToTryReceive> {
+    pub fn try_receive(&mut self) -> Result<Vec<Vec<u8>>, FailedToTryReceive> {
         // SAFETY: lgw_pkt_rx_s can be zero initialized 
         let mut packets: [lgw_pkt_rx_s; sx1302::MAX_RAW_PAYLOAD_HOLDER_SIZE as usize] = unsafe { MaybeUninit::zeroed().assume_init() }; 
         let count = match unsafe { self.driver_api.lgw_receive(sx1302::MAX_RAW_PAYLOAD_HOLDER_SIZE as u8, &mut packets as *mut lgw_pkt_rx_s) } {
@@ -216,7 +216,7 @@ impl<'a, B: DeviceBackingAPI> SX1302<'a, B> {
     }
 
     /// try sending a packet from sx1302
-    fn try_send(&mut self, packet_config: OutgoingPacketConfig, payload: Payload) -> Result<(), TrySendError> {
+    pub fn try_send(&mut self, packet_config: OutgoingPacketConfig, payload: Payload) -> Result<(), TrySendError> {
         if payload.len() > MAX_PAYLOAD_SIZE {
             return Err(TrySendError::PayloadTooLarge(payload.len(), MAX_PAYLOAD_SIZE));
         }
@@ -289,7 +289,7 @@ impl<'a, B: DeviceBackingAPI> SX1302<'a, B> {
     }
 
     /// gets the current status of a radio on the SX1302
-    fn get_radio_status(&mut self, radio: Radios) -> Result<RadioStatus, FailedToGetStatus> {
+    pub fn get_radio_status(&mut self, radio: Radios) -> Result<RadioStatus, FailedToGetStatus> {
         let mut rx_status_code: u8 = 0;
 
         if LGW_HAL_SUCCESS != unsafe { self.driver_api.lgw_status(radio as u8, bindings_loragw_hal::RX_STATUS, &mut rx_status_code as *mut u8) } {
@@ -327,7 +327,7 @@ impl<'a, B: DeviceBackingAPI> SX1302<'a, B> {
     }
 
     /// Get the SX1302 temperature in degrees celcius
-    fn get_temperature_celcius(&mut self, ) -> Result<f32, FailedToGetTemp> {
+    pub fn get_temperature_celcius(&mut self, ) -> Result<f32, FailedToGetTemp> {
         let mut temp: f32 = 0.0;
         unsafe {
             if LGW_HAL_SUCCESS != self.driver_api.lgw_get_temperature(&mut temp as *mut f32) {
