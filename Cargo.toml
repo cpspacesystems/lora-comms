@@ -8,6 +8,7 @@ bitvec = { version = "1.0.1", features = ["serde"] }
 crc = "3.3.0"
 flatbuffers = { version = "25.12.19", features = ["serialize"] }
 paste = "1.0.15"
+oorandom = "11.1.5"
 phf = { version = "0.13.1", features = ["phf_macros"] }
 thiserror = "2.0.17"
 tokio = { version = "1.48.0", features = ["macros"] }
