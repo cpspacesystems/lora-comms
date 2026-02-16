@@ -1,4 +1,4 @@
-use crate::sx1302::types::{FixedVec, OutgoingPacketConfig, RadioStatus, Radios};
+use crate::sx1302::types::{OutgoingPacketConfig, RadioStatus, Radios};
 use crate::sx1302::error::{ConfigureError, FailedToGetStatus, FailedToGetTemp, FailedToStart, FailedToStop, FailedToTryReceive, TrySendError};
 
 // public modules
@@ -16,4 +16,4 @@ mod testing;
 pub const MAX_PAYLOAD_SIZE:usize = 256; // must match the payload arr size in loragw_hal
 pub const MAX_RAW_PAYLOAD_HOLDER_SIZE: usize = 10; // must fit into u8
 
-pub type Payload = FixedVec<u8, MAX_PAYLOAD_SIZE>;
+pub type Payload = Vec<u8>;
