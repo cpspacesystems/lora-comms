@@ -37,7 +37,8 @@ class LR1120: public LR11x0 {
       To use XTAL, either set this value to 0, or set LR11x0::XTAL to true.
       \returns \ref status_codes
     */
-    int16_t begin(float freq = 434.0, float bw = 125.0, uint8_t sf = 9, uint8_t cr = 7, uint8_t syncWord = RADIOLIB_LR11X0_LORA_SYNC_WORD_PRIVATE, int8_t power = 10, uint16_t preambleLength = 8, float tcxoVoltage = 1.6);
+   // default is int16_t begin(float freq = 434.0, float bw = 125.0, uint8_t sf = 9, uint8_t cr = 7, uint8_t syncWord = RADIOLIB_LR11X0_LORA_SYNC_WORD_PRIVATE, int8_t power = 10, uint16_t preambleLength = 8, float tcxoVoltage = 1.6);
+    int16_t begin(float freq, float bw, uint8_t sf, uint8_t cr, uint8_t syncWord = RADIOLIB_LR11X0_LORA_SYNC_WORD_PRIVATE, int8_t power, uint16_t preambleLength, float tcxoVoltage);
 
     /*!
       \brief Initialization method for FSK modem.

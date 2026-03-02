@@ -23,7 +23,8 @@ static void lgpioAlertHandler(int num_alerts, lgGpioAlert_p alerts, void *userda
 class PiHal : public RadioLibHal {
   public:
     // default constructor - initializes the base HAL and any needed private members
-    PiHal(uint8_t spiChannel, uint32_t spiSpeed = 2000000, uint8_t spiDevice = 0, uint8_t gpioDevice = 0)
+    //uint32_t spiSpeed = 2000000, uint8_t spiDevice = 0, uint8_t gpioDevice = 0 are defaults
+    PiHal(uint8_t spiChannel, uint32_t spiSpeed, uint8_t spiDevice, uint8_t gpioDevice)
       : RadioLibHal(PI_INPUT, PI_OUTPUT, LG_LOW, LG_HIGH, PI_RISING, PI_FALLING),
       _gpioDevice(gpioDevice),
       _spiDevice(spiDevice),
