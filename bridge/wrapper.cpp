@@ -17,7 +17,7 @@ struct Context {
     PiHal* hal;
     LR1121* radio;
     ~Context() {
-      delete radio;
+      delete radio
       delete hal; 
     }
 };
