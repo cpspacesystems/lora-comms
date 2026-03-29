@@ -2,6 +2,12 @@
 #include <RadioLib.h>
 #include "hal/RPi/PiHal.h"
 
+
+
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 // create a new instance of the HAL class
 // use SPI channel 1, because on Waveshare LoRaWAN Hat,
 // the LR1121 CS is connected to CE1
@@ -14,7 +20,6 @@
 // NRST pin:  22
 // BUSY pin:  not connected
 
-/// @brief 
 struct Context {
     PiHal* hal;
     LR1121* radio;
@@ -54,10 +59,15 @@ int begin(Context* context, float freq, float bw, uint8_t sf, uint8_t cr, uint8_
         return(1);
     }
     printf("success!\n");
-    
     return 0;
 }
-
+/// @brief 
+/// @param context 
+/// @param delay 
+/// @param package 
+/// @param len 
+/// @param addr 
+/// @return 
 int trasmit(Context* context, uint16_t delay, const uint8_t* package, size_t len, uint8_t addr) {
     int state = context->radio->transmit(package, len, addr);
     if(state == RADIOLIB_ERR_NONE) {
@@ -68,43 +78,67 @@ int trasmit(Context* context, uint16_t delay, const uint8_t* package, size_t len
     }
   return(0);
 }
-int reveive(Context* context, uint8_t* data, size_t len, RadioLibTime_t timeout) {
-  int output = context->radio->receive(data, len, timeout);
-  if(output != RADIOLIB_ERR_NONE) {
-    printf("Failed RX: %d", output);
-  }
-  return output;
+/// @brief 
+/// @param context 
+/// @param data 
+/// @param len 
+/// @param timeout 
+/// @return 
+int receive(Context* context, uint8_t* data, size_t len, RadioLibTime_t timeout) {
+  return context->radio->receive(data, len, timeout);
 }
+/// @brief 
+/// @param context 
+/// @param frequency 
+/// @return 
 int setFrequency(Context* context, float frequency) {
-  int output = context->radio->setFrequency(frequency);
-  if(output != RADIOLIB_ERR_NONE) {
-    printf("Failed setFrequency: %f", output);
-  }
-  return output;
+  return context->radio->setFrequency(frequency);
 }
+/// @brief 
+/// @param context 
+/// @param power 
+/// @return 
 int setPower(Context* context, uint8_t power) {
-  int output = context->radio->setOutputPower(power);
-  if(output != RADIOLIB_ERR_NONE) {
-    printf("Failed setPower: %f", power);
-  }
-  return output;
+  return context->radio->setOutputPower(power);
 }
-
+/// @brief 
+/// @param context 
+/// @param sf 
+/// @param legacy 
+/// @return 
 int setSpreadingFactor(Context* context, uint8_t sf, bool legacy) {
-  int output = context->radio->setSpreadingFactor(sf, legacy);
+  return context->radio->setSpreadingFactor(sf, legacy);
 }
+/// @brief 
+/// @param context 
+/// @param cr 
+/// @param longInterleave 
+/// @return 
 int setCodingRate(Context* context, uint8_t cr, bool longInterleave) {
-  int output = context->radio->setCodingRate(cr, longInterleave);
+  return context->radio->setCodingRate(cr, longInterleave);
 }
+/// @brief 
+/// @param context 
+/// @param br 
+/// @return 
 int setBitRate(Context* context, float br) {
-  int output = context->radio->setBitRate(br);
+  return context->radio->setBitRate(br);
 }
+/// @brief 
+/// @param context 
+/// @param preambleLength 
+/// @return 
 int setPreambleLength(Context* context, size_t preambleLength) { // default 8
-  int output = context->radio->setPreambleLength(preambleLength);
+  return context->radio->setPreambleLength(preambleLength);
 }
-
+/// @brief 
+/// @param context 
 void end(Context* context) {
   if(context) {
     delete context;
   }
 }
+
+#ifdef __cplusplus
+}
+#endif
