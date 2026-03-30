@@ -1,12 +1,11 @@
 #pragma once
+#include <RadioLib.h>
 #include <stdint.h>
 #include <stddef.h>
 #include <stdbool.h>
 
-#define RADIOLIB_LR11X0_LORA_SYNC_WORD_PRIVATE 0x12
 
-typedef struct Context context;
-typedef uint32_t RadioLibTime_t;
+typedef struct Context Context;
 
 #ifdef __cplusplus
 extern "C" {
@@ -20,8 +19,9 @@ extern "C" {
 /// @param cs 
 /// @param irq 
 /// @param rst 
+/// @param busy
 /// @return 
-Context* init(uint8_t spiChannel, uint32_t spiSpeed, uint8_t spiDevice, uint8_t gpioDevice, uint32_t cs, uint32_t irq, uint32_t rst);
+Context* init(uint8_t spiChannel, uint32_t spiSpeed, uint8_t spiDevice, uint8_t gpioDevice, uint32_t cs, uint32_t irq, uint32_t rst, uint32_t busy);
 
 
 /// @brief 

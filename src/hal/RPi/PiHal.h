@@ -142,7 +142,7 @@ class PiHal : public RadioLibHal {
       lgGpioSetAlertsFunc(_gpioHandle, interruptNum, NULL, NULL);
     }
 
-    void delay(unsigned long ms) override {
+    void delay(RadioLibTime_t ms) override {
       if(ms == 0) {
         sched_yield();
         return;
@@ -151,7 +151,7 @@ class PiHal : public RadioLibHal {
       lguSleep(ms / 1000.0);
     }
 
-    void delayMicroseconds(unsigned long us) override {
+    void delayMicroseconds(RadioLibTime_t us) override {
       if(us == 0) {
         sched_yield();
         return;
@@ -164,17 +164,17 @@ class PiHal : public RadioLibHal {
       sched_yield();
     }
 
-    unsigned long millis() override {
+    RadioLibTime_t millis() override {
       uint32_t time = lguTimestamp() / 1000000UL;
       return time;
     }
 
-    unsigned long micros() override {
+    RadioLibTime_t micros() override {
       uint32_t time = lguTimestamp() / 1000UL;
       return time;
     }
 
-    long pulseIn(uint32_t pin, uint32_t state, unsigned long timeout) override {
+    long pulseIn(uint32_t pin, uint32_t state, RadioLibTime_t timeout) override {
       if(pin == RADIOLIB_NC) {
         return(0);
       }

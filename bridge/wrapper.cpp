@@ -25,6 +25,7 @@ struct Context {
     LR1121* radio;
     ~Context() {
       delete radio;
+      this->hal->term();
       delete hal; 
     }
 };
@@ -42,25 +43,36 @@ struct Context {
 /// @param irq 
 /// @param rst 
 /// @return 
-Context* init(uint8_t spiChannel, uint32_t spiSpeed, uint8_t spiDevice, uint8_t gpioDevice, uint32_t cs, uint32_t irq, uint32_t rst) {
-    Context* context = new Context();
-    context->hal = new PiHal(spiChannel, spiSpeed, spiDevice, gpioDevice);
-    // no gpio
-    context->radio = &(LR1121)new Module(context->hal, cs, irq, rst, RADIOLIB_NC);
-    return context;
-    
+Context* init(uint8_t spiChannel, uint32_t spiSpeed, uint8_t spiDevice, uint8_t gpioDevice, uint32_t cs, uint32_t irq, uint32_t rst, uint32_t busy) {
+    Context* ctx = new Context();
+    ctx->hal = new PiHal(spiChannel, spiSpeed, spiDevice, gpioDevice);
+
+    ctx->hal->init();
+printf("BUSY before reset: %d\n", ctx->hal->digitalRead(busy));
+ctx->hal->pinMode(rst, ctx->hal->GpioModeOutput);
+ctx->hal->digitalWrite(rst, ctx->hal->GpioLevelLow);
+printf("RST pulled low\n");
+ctx->hal->delay(100);
+ctx->hal->digitalWrite(rst, ctx->hal->GpioLevelHigh);
+printf("RST released\n");
+ctx->hal->delay(50);
+printf("BUSY after reset pulse: %d\n", ctx->hal->digitalRead(busy));
+ctx->hal->delay(300);
+printf("BUSY 300ms after reset: %d\n", ctx->hal->digitalRead(busy));
+
+    ctx->radio = new LR1121(new Module(ctx->hal, cs, irq, rst, busy));
+    return ctx;
 }
 
 // default is int16_t begin(float freq = 434.0, float bw = 125.0, uint8_t sf = 9, uint8_t cr = 7, uint8_t syncWord = RADIOLIB_LR11X0_LORA_SYNC_WORD_PRIVATE, int8_t power = 10, uint16_t preambleLength = 8, float tcxoVoltage = 1.6);
-int begin(Context* context, float freq, float bw, uint8_t sf, uint8_t cr, uint8_t syncWord = RADIOLIB_LR11X0_LORA_SYNC_WORD_PRIVATE, int8_t power = 10, uint16_t preambleLength, float tcxoVoltage) {
-    int state = context->radio->begin(freq, bw, sf, cr, syncWord = RADIOLIB_LR11X0_LORA_SYNC_WORD_PRIVATE, power, preambleLength, tcxoVoltage);
-    if(state != RADIOLIB_ERR_NONE) {
-        printf("failed, code %d\n", state);
-        return(1);
-    }
-    printf("success!\n");
-    return 0;
+int begin(Context* context, float freq, float bw, uint8_t sf, uint8_t cr, uint8_t syncWord, int8_t power, uint16_t preambleLength, float tcxoVoltage) {
+    printf("begin called: freq=%.1f tcxo=%.1f\n", freq, tcxoVoltage);
+    int state = context->radio->begin(freq, bw, sf, cr, syncWord, power, preambleLength, tcxoVoltage);
+    printf("begin state=%d\n", state);
+    return state;
 }
+
+
 /// @brief 
 /// @param context 
 /// @param delay 
