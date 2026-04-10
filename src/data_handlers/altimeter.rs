@@ -1,7 +1,7 @@
 
 use flatbuffers;
 
-use crate::{common::BufferType, data_handlers::{DataConsumer, DataProducer}, error::{self, ErrorType, LORAError}, publisher, subscriber};
+use crate::{common::BufferType, data_handlers::{DataConsumer, DataProducer}, errors::{self, AnyError}, publisher, subscriber};
 
 #[allow(unused_imports)]
 #[path = "../../gen/flatbuffers/alitmeter_generated.rs"]
@@ -26,13 +26,17 @@ impl DataProducer for Producer {
     /// gets altimeter data from zenoh and produces a binary representation
     /// 
     /// this produces 4 bytes
-    fn produce(&self) -> Result<BufferType, ErrorType> {
+    fn produce(&self) -> Result<BufferType, AnyError> {
         self.subscriber.get();
 
         let data = if let Ok(d) = fb_alitmeter::root_as_altimeter(&[0; 10]) { d } 
-            else { return Err(LORAError::ParseFlatbufferAltimeterError(self.zenoh_path.clone()))};
+            else { return Err(errors::ParseFlatbufferAltimeterError(self.zenoh_path.clone()).into())};
 
         Ok((data.height() as f32).to_le_bytes().to_vec())
+    }
+    
+    fn has_data(&self) -> Result<bool, AnyError> {
+        Ok(true)
     }
 }
 
@@ -47,7 +51,7 @@ impl<'a> Consumer<'a> {
     }
 }
 impl<'a> DataConsumer for Consumer<'a> {
-    fn consume(&self, buffer: BufferType) -> Result<(), ErrorType> {
+    fn consume(&self, buffer: BufferType) -> Result<(), AnyError> {
         self.publisher.send_vec(&buffer);
         Ok(())
     }

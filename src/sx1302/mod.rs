@@ -12,8 +12,7 @@ pub mod backing;
 // internal modules
 mod bindings_loragw_hal;
 mod testing;
-
-pub const MAX_PAYLOAD_SIZE:usize = 256; // must match the payload arr size in loragw_hal
+ 
 pub const MAX_RAW_PAYLOAD_HOLDER_SIZE: usize = 10; // must fit into u8
 
 pub type Payload = Vec<u8>;

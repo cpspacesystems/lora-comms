@@ -1,7 +1,7 @@
 use core::num;
 use std::array;
 
-use crate::sx1302::{self, bindings_loragw_hal, error::{AssertFailure, assert_np}, types};
+use crate::{common::{Bandwidth, LoraCodeRate}, sx1302::{self, bindings_loragw_hal}};
 
 //////////////////////////////////////////////////
 /// All common public data types and functions ///
@@ -40,28 +40,27 @@ pub enum RadioStatus {
     Unknown,
 }
 
-/// bandwidth for radio channels
-#[repr(u8)]
-#[derive(Debug, Clone, Copy, PartialEq)]
-pub enum Bandwidth {
-    Low125khz = bindings_loragw_hal::BW_125KHZ,
-    Mid250khz = bindings_loragw_hal::BW_250KHZ,
-    High500khz = bindings_loragw_hal::BW_500KHZ,
-    // no BW_UNDEFINED here, the default is explicitly defined here as Low125khz
+
+impl From<Bandwidth> for u8 {
+    fn from(value: Bandwidth) -> Self {
+        match value {
+            Bandwidth::Low125khz => bindings_loragw_hal::BW_125KHZ,
+            Bandwidth::Mid250khz => bindings_loragw_hal::BW_250KHZ,
+            Bandwidth::High500khz => bindings_loragw_hal::BW_500KHZ,
+            // no BW_UNDEFINED here, the default is explicitly defined here as Low125khz
+        }
+    }
 }
 
-/// error correction level for LoRa packets
-#[repr(u8)]
-#[derive(Debug, Clone, Copy, PartialEq)]
-pub enum LoraCodeRate {
-    /// 4 data bits and 1 parity bits for 5 total bits
-    CR1 = bindings_loragw_hal::CR_LORA_4_5,
-    /// 4 data bits and 2 parity bits for 6 total bits
-    CR2 = bindings_loragw_hal::CR_LORA_4_6,
-    /// 4 data bits and 3 parity bits for 7 total bits
-    CR3 = bindings_loragw_hal::CR_LORA_4_7,
-    /// 4 data bits and 4 parity bits for 8 total bits
-    CR4 = bindings_loragw_hal::CR_LORA_4_8,
+impl From<LoraCodeRate> for u8 {
+    fn from(value: LoraCodeRate) -> Self {
+        match value {
+            LoraCodeRate::CR1 => bindings_loragw_hal::CR_LORA_4_5,
+            LoraCodeRate::CR2 => bindings_loragw_hal::CR_LORA_4_6,
+            LoraCodeRate::CR3 => bindings_loragw_hal::CR_LORA_4_7,
+            LoraCodeRate::CR4 => bindings_loragw_hal::CR_LORA_4_8,
+        }
+    }
 }
 
 /// Outgoing/Transmit Packet Modulation configuration 

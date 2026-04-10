@@ -1,7 +1,8 @@
 use std::{cell::UnsafeCell, error::Error, ffi, fmt, mem::{ManuallyDrop, MaybeUninit}, ops::DerefMut, sync::LazyLock};
 
-use crate::sx1302::{self, MAX_PAYLOAD_SIZE, Payload, backing::{DeviceBackingAPI, PhysicalDevice}, bindings_loragw_hal::{self, LGW_HAL_ERROR, LGW_HAL_SUCCESS, lgw_com_type_t, lgw_conf_board_s, lgw_conf_chan_lbt_s, lgw_conf_demod_s, lgw_conf_ftime_s, lgw_conf_rxif_s, lgw_conf_rxrf_s, lgw_ftime_mode_t, lgw_pkt_rx_s, lgw_pkt_tx_s, lgw_radio_type_t, lgw_rssi_tcomp_s,lgw_tx_gain_lut_s, lgw_tx_gain_s}, conf::{self}, error::{ConfigureError, FailedToGetStatus, FailedToGetTemp, FailedToStart, FailedToStop, FailedToTryReceive, TrySendError}}; 
+use crate::{common::assert_np, sx1302::{self, Payload, backing::{DeviceBackingAPI, PhysicalDevice}, bindings_loragw_hal::{self, LGW_HAL_ERROR, LGW_HAL_SUCCESS, lgw_com_type_t, lgw_conf_board_s, lgw_conf_chan_lbt_s, lgw_conf_demod_s, lgw_conf_ftime_s, lgw_conf_rxif_s, lgw_conf_rxrf_s, lgw_ftime_mode_t, lgw_pkt_rx_s, lgw_pkt_tx_s, lgw_radio_type_t, lgw_rssi_tcomp_s,lgw_tx_gain_lut_s, lgw_tx_gain_s}, conf::{self}, error::{ConfigureError, FailedToGetStatus, FailedToGetTemp, FailedToStart, FailedToStop, FailedToTryReceive, TrySendError}}}; 
 use crate::sx1302::types::*;
+use crate::common_config::MAX_PAYLOAD_SIZE;
 
 /////////////////
 /// Functions ///
@@ -190,7 +191,7 @@ impl<'a, B: DeviceBackingAPI> SX1302<'a, B> {
     }
 
     /// try receiving packets from sx1302, only valid packets are returned
-    pub fn try_receive(&mut self) -> Result<Vec<Vec<u8>>, FailedToTryReceive> {
+    pub fn try_receive(&mut self) -> Result<Vec<(u8, Vec<u8>)>, FailedToTryReceive> {
         // SAFETY: lgw_pkt_rx_s can be zero initialized 
         let mut packets: [lgw_pkt_rx_s; sx1302::MAX_RAW_PAYLOAD_HOLDER_SIZE as usize] = unsafe { MaybeUninit::zeroed().assume_init() }; 
         let count = match unsafe { self.driver_api.lgw_receive(sx1302::MAX_RAW_PAYLOAD_HOLDER_SIZE as u8, &mut packets as *mut lgw_pkt_rx_s) } {
@@ -210,13 +211,13 @@ impl<'a, B: DeviceBackingAPI> SX1302<'a, B> {
 
             let mut data = Payload::with_capacity(packet.size as usize); 
             data.extend_from_slice(&packet.payload[0..packet.size as usize]);
-            raw_data.push(data); 
+            raw_data.push((packet.size as u8, data)); 
         }
         Ok(raw_data)
     }
 
     /// try sending a packet from sx1302
-    pub fn try_send(&mut self, packet_config: OutgoingPacketConfig, payload: Payload) -> Result<(), TrySendError> {
+    pub fn try_send(&mut self, packet_config: OutgoingPacketConfig, payload: &Payload) -> Result<(), TrySendError> {
         if payload.len() > MAX_PAYLOAD_SIZE {
             return Err(TrySendError::PayloadTooLarge(payload.len(), MAX_PAYLOAD_SIZE));
         }
@@ -261,10 +262,10 @@ impl<'a, B: DeviceBackingAPI> SX1302<'a, B> {
                 bindings_loragw_hal::MOD_FSK
             },
             OutgoingPacketModulation::LoRa { bandwidth, spread_factor, coderate, no_header, invert_polarity, preamble_length } => {
-                packet.bandwidth = bandwidth as u8;
+                packet.bandwidth = bandwidth.into();
                 packet.datarate = if 5 <= spread_factor && spread_factor <= 12 { spread_factor } 
                     else { return Err(TrySendError::PacketLoraSFUnsupported(spread_factor)); };
-                packet.coderate = coderate as u8;
+                packet.coderate = coderate.into();
                 packet.no_header = no_header;
                 packet.invert_pol = invert_polarity;
                 packet.preamble = if 6 <= preamble_length { preamble_length } 
@@ -274,7 +275,7 @@ impl<'a, B: DeviceBackingAPI> SX1302<'a, B> {
             },
         };
         
-        let mut buffer: [u8; MAX_PAYLOAD_SIZE] = [0; 256];
+        let mut buffer: [u8; 256] = [0; 256];
         buffer[0..payload.len()].copy_from_slice(payload.as_slice());
 
         packet.payload = buffer;
@@ -344,7 +345,9 @@ mod tests {
 
     use bitvec::vec;
 
-    use crate::sx1302::{Payload, SX1302, backing::{DeviceBackingAPI, unit_test_backing::UnitTestDevice}, bindings_loragw_hal::{self, BW_125KHZ, CR_LORA_4_5, DR_LORA_SF7, IMMEDIATE, LGW_HAL_ERROR, LGW_HAL_SUCCESS, MOD_LORA, RX_OFF, RX_ON, RX_STATUS, RX_STATUS_UNKNOWN, RX_SUSPENDED, STAT_CRC_BAD, STAT_CRC_OK, TX_EMITTING, TX_FREE, TX_OFF, TX_SCHEDULED, TX_STATUS, TX_STATUS_UNKNOWN, lgw_conf_board_s, lgw_conf_demod_s, lgw_conf_ftime_s, lgw_conf_rxrf_s, lgw_pkt_rx_s, lgw_pkt_tx_s, lgw_rssi_tcomp_s}, conf, error::{ConfigureError, FailedToGetStatus, FailedToGetTemp, FailedToStart, FailedToStop, FailedToTryReceive, TrySendError}, testing::new_FunctionData, types::{Bandwidth, LoraCodeRate, OutgoingPacketConfig, OutgoingPacketModulation, OutgoingPacketTiming, RadioStatus, Radios}};
+    use crate::{common::{Bandwidth, LoraCodeRate}, sx1302::{Payload, SX1302, backing::unit_test_backing::UnitTestDevice, bindings_loragw_hal::{self, BW_125KHZ, CR_LORA_4_5, DR_LORA_SF7, IMMEDIATE, LGW_HAL_ERROR, LGW_HAL_SUCCESS, MOD_LORA, RX_OFF, RX_ON, RX_STATUS, RX_STATUS_UNKNOWN, RX_SUSPENDED, STAT_CRC_BAD, STAT_CRC_OK, TX_EMITTING, TX_FREE, TX_OFF, TX_SCHEDULED, TX_STATUS, TX_STATUS_UNKNOWN, lgw_conf_board_s, lgw_conf_demod_s, lgw_conf_ftime_s, lgw_conf_rxrf_s, lgw_pkt_rx_s, lgw_pkt_tx_s, lgw_rssi_tcomp_s}, conf, error::{ConfigureError, FailedToGetStatus, FailedToGetTemp, FailedToStart, FailedToStop, FailedToTryReceive, TrySendError}, testing::new_FunctionData, types::{OutgoingPacketConfig, OutgoingPacketModulation, OutgoingPacketTiming, RadioStatus, Radios}}};
+    use crate::sx1302::types::*;
+    use crate::common_config::MAX_PAYLOAD_SIZE;
 
     #[test]
     fn test_new() {
@@ -704,7 +707,7 @@ mod tests {
             snr_min: 3.0, 
             snr_max: 30.0, 
             crc: 0x00, 
-            size: 256, 
+            size: MAX_PAYLOAD_SIZE as u16, 
             payload: [69; 256], 
             ftime_received: true, 
             ftime: 13374690 }
@@ -728,7 +731,7 @@ mod tests {
             snr_min: 3.0, 
             snr_max: 30.0, 
             crc: 0x00, 
-            size: 256, 
+            size: MAX_PAYLOAD_SIZE as u16, 
             payload: [70; 256], 
             ftime_received: true, 
             ftime: 13374690 }
@@ -769,7 +772,8 @@ mod tests {
         assert!(r2.is_ok());
         let d2 = r2.unwrap();
         assert_eq!(d2.len(), 1);
-        assert_eq!(d2.as_slice()[0].as_slice(), [69; 256]);
+        assert_eq!(d2[0].0, MAX_PAYLOAD_SIZE as u8);
+        assert_eq!(d2.as_slice()[0].1.as_slice(), [69; MAX_PAYLOAD_SIZE]);
         
         // crc bad packet handling
         h1.lgw_receive_harness.expect_from_now(1, new_FunctionData! {
@@ -780,7 +784,7 @@ mod tests {
         s3.configure().unwrap();
         let d3 = s3.try_receive().unwrap();
         assert_eq!(d2.len(), 1);
-        assert_eq!(d3.as_slice()[0].as_slice(), [69; 256]);
+        assert_eq!(d3.as_slice()[0].1.as_slice(), [69; MAX_PAYLOAD_SIZE]);
 
         // crc bad packet with good packet
         h1.lgw_receive_harness.expect_from_now(1, new_FunctionData! {
@@ -791,8 +795,8 @@ mod tests {
         s3.configure().unwrap();
         let d3 = s3.try_receive().unwrap();
         assert_eq!(d3.len(), 2);
-        assert_eq!(d3.as_slice()[0].as_slice(), [69; 256]);
-        assert_eq!(d3.as_slice()[1].as_slice(), [71; 225]);
+        assert_eq!(d3.as_slice()[0].1.as_slice(), [69; MAX_PAYLOAD_SIZE]);
+        assert_eq!(d3.as_slice()[1].1.as_slice(), [71; 225]);
 
         // handle a bunch of packets
         h1.lgw_receive_harness.expect_from_now(1, new_FunctionData! {
@@ -802,8 +806,8 @@ mod tests {
         let mut s4 = SX1302::new(conf::DEFAULT_SX1302_CONFIG, &mut h1);
         s4.configure().unwrap();
         let d4 = s4.try_receive().unwrap();
-        let d4c: Vec<&[u8]> = d4.iter().map(|x| x.as_slice()).collect();
-        let d4e: Vec<&[u8]> = vec![&[69;256], &[71; 225], &[69;256], &[71; 225]];
+        let d4c: Vec<&[u8]> = d4.iter().map(|x| x.1.as_slice()).collect();
+        let d4e: Vec<&[u8]> = vec![&[69;MAX_PAYLOAD_SIZE], &[71; 225], &[69;MAX_PAYLOAD_SIZE], &[71; 225]];
         assert_eq!(d4c, d4e);
 
     }
@@ -832,7 +836,7 @@ mod tests {
         });
         let mut s = SX1302::new(conf::DEFAULT_SX1302_CONFIG, &mut h);
         s.configure().unwrap();
-        let r = s.try_send(c1, Payload::new());
+        let r = s.try_send(c1, &Payload::new());
         assert!(matches!(r, Err(TrySendError::FailedToTrySend)));
         
         // check radio status handling
@@ -842,7 +846,7 @@ mod tests {
         });
         let mut s = SX1302::new(conf::DEFAULT_SX1302_CONFIG, &mut h);
         s.configure().unwrap();
-        let r = s.try_send(c1, Payload::new());
+        let r = s.try_send(c1, &Payload::new());
         assert!(matches!(r, Err(TrySendError::RadioBusy)));
 
         // normal op handling
@@ -859,13 +863,13 @@ mod tests {
                 datarate: 7, coderate: CR_LORA_4_5, 
                 invert_pol: false, f_dev: 0, preamble: 6, 
                 no_crc: false, no_header: false, 
-                size: 256, payload: [69; 256] 
+                size: MAX_PAYLOAD_SIZE as u16, payload: { let mut a = [69; 256]; a[255] = 0; a } 
             }
         });
         let mut s = SX1302::new(conf::DEFAULT_SX1302_CONFIG, &mut h);
         s.configure().unwrap();
-        let p1 = Payload::from(&[69; 256]);
-        let r = s.try_send(c1, p1);
+        let p1 = Payload::from(&[69; MAX_PAYLOAD_SIZE]);
+        let r = s.try_send(c1, &p1);
         assert!(r.is_ok());
     }
 

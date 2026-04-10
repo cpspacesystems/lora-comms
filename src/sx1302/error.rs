@@ -1,24 +1,5 @@
 use thiserror::Error;
 
-#[derive(Error, Debug, PartialEq)]
-#[error("AssertFailure: {0}")]
-/// Generic assertion failure to respersent some program condition where we can't continue
-pub struct AssertFailure(pub String);
-/// an assert macro similar to assert!, except an Err(AssertFailure) is returned as an result instead of panic.
-macro_rules! assert_no_panic {
-    ($cond:expr $(,)?) => {{
-        if !($cond) {
-            return Err(crate::sx1302::error::AssertFailure(format!("Assertion of {} failed at {}:{}:{}", stringify!($cond), file!(), line!(), column!())));
-        }
-    }};
-    ($cond:expr, $($arg:tt)+) => {{ 
-        if !($cond) {
-            return Err(crate::sx1302::error::AssertFailure(format!("Assertion of {} failed at {}:{}:{} with message: {}", stringify!($cond), file!(), line!(), column!(), format!($($arg)*))));
-        }
-    }};
-}
-pub(super) use assert_no_panic as assert_np;
-
 /// all errors for configure
 #[derive(Error, Debug, PartialEq)]
 pub enum ConfigureError {
