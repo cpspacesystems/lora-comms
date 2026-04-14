@@ -36,5 +36,6 @@ pub const PRNG_SET_SEED: u64 = 133746970;
 pub const LORA_REGONATION_CODE: u8 = 0b1101001;
 
 pub const PACKET_LOST_CALC_INTERVAL: time::Duration = time::Duration::from_secs(10); // seconds
+pub const CONNECTION_LOST_AFTER_PERIOD: time::Duration = time::Duration::from_secs(10); // seconds
 pub const UPLINK_TRANSMIT_BEGIN_PERIOD: time::Duration = time::Duration::from_millis(10); // ms
 pub const UPLINK_TRANSMIT_TIMEOUT_PERIOD: time::Duration = time::Duration::from_millis(100); // 100 ms 

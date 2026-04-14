@@ -64,15 +64,40 @@ pub(super) use assert_no_panic as assert_np;
 
 /// error correction level for LoRa packets
 #[derive(Debug, Clone, Copy, PartialEq)]
+#[repr(u8)]
 pub enum LoraCodeRate {
     /// 4 data bits and 1 parity bits for 5 total bits
-    CR1,
+    CR1 = 1,
     /// 4 data bits and 2 parity bits for 6 total bits
-    CR2,
+    CR2 = 2,
     /// 4 data bits and 3 parity bits for 7 total bits
-    CR3,
+    CR3 = 3,
     /// 4 data bits and 4 parity bits for 8 total bits
-    CR4,
+    CR4 = 4,
+}
+impl Default for LoraCodeRate {
+    // default CR1
+    fn default() -> Self {
+        Self::CR1
+    }
+}
+impl LoraCodeRate {
+    pub const MIN: Self = LoraCodeRate::CR1;
+    pub const MAX: Self = LoraCodeRate::CR4;
+    pub fn increment(&self) -> Self {
+        match *self {
+            Self::MAX => Self::MAX,
+            // SAFETY: p + 1 is guranteed to be a valid code rate, we can never overflow valid ranges
+            p => unsafe { std::mem::transmute(p as u8 + 1) }
+        }
+    }
+    pub fn decrement(&self) -> Self {
+        match *self {
+            Self::MIN => Self::MIN,
+            // SAFETY: p - 1 is guranteed to be a valid code rate, we can never nuderflow valid ranges
+            p => unsafe { std::mem::transmute(p as u8 - 1) }
+        }
+    }
 }
 
 /// bandwidth for radio channels
@@ -82,6 +107,60 @@ pub enum Bandwidth {
     Mid250khz,
     High500khz,
 }
+
+// lora spread factor, valid only between [5,12]
+#[derive(Debug, Clone, Copy, PartialEq)]
+#[repr(u8)]
+pub enum SpreadFactor {
+    SF5 = 5, SF6 = 6, SF7 = 7, SF8 = 8, SF9 = 9, SF10 = 10, SF11 = 11, SF12 = 12
+}
+impl Default for SpreadFactor {
+    // Default SF7
+    fn default() -> Self {
+        Self::SF7
+    }
+}
+impl SpreadFactor {
+    pub const MIN: Self = SpreadFactor::SF5;
+    pub const MAX: Self = SpreadFactor::SF12;
+    pub fn increment(&self) -> Self {
+        match *self {
+            Self::MAX => Self::MAX,
+            // SAFETY: p + 1 is guranteed to be a valid spread factor, we can never overflow valid ranges
+            p => unsafe { std::mem::transmute(p as u8 + 1) }
+        }
+    }
+    pub fn decrement(&self) -> Self {
+        match *self {
+            Self::MIN => Self::MIN,
+            // SAFETY: p - 1 is guranteed to be a valid spread factor, we can never nuderflow valid ranges
+            p => unsafe { std::mem::transmute(p as u8 - 1) }
+        }
+    }
+}
+macro_rules! __SFCVTImpl {
+    ($($T:ty $(,)?)+) => {$(
+        impl From<SpreadFactor> for $T {
+            fn from(value: SpreadFactor) -> Self {
+                (value as u8).into()
+            }
+        }
+        impl TryFrom<$T> for SpreadFactor {
+            type Error = errors::InvalidData;
+
+            fn try_from(value: $T) -> Result<Self, Self::Error> {
+                if 5 <= value && value <= 12 {
+                    // SAFETY: all values are within valid ranges for SF
+                    Ok(unsafe { std::mem::transmute(value as u8) })
+                } else {
+                    Err(errors::InvalidData(format!("Invalid data: {value} is not a valid lora spread factor!")))                    
+                }
+            }
+        }
+    )*};
+}
+__SFCVTImpl!(u32, u8, i32);
+
 
 /// gets a PRNG generator, using a global set seed if specificed
 pub fn get_prng() -> oorandom::Rand32 {

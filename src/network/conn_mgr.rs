@@ -1,6 +1,6 @@
 use std::{collections::VecDeque, io::SeekFrom, rc::Rc, time};
 
-use crate::{common::{BufferType, LoraChannel, LoraCodeRate}, common_config::{PACKET_LOST_CALC_INTERVAL, UPLINK_TRANSMIT_BEGIN_PERIOD, UPLINK_TRANSMIT_TIMEOUT_PERIOD}, data_handlers::{self, ConsumerManager, ProducerManager, r_negotiate::NegotiatedState}, errors::AnyError, network_ids::{self, TypeIDs}, packet::{self, DecodedPacket, OutgoingFrameBuilder, transmission_ctrl::TSMCtrlInfo}};
+use crate::{common::{BufferType, LoraChannel, LoraCodeRate}, common_config::{self, PACKET_LOST_CALC_INTERVAL, UPLINK_TRANSMIT_BEGIN_PERIOD, UPLINK_TRANSMIT_TIMEOUT_PERIOD}, data_handlers::{self, ConsumerManager, ProducerManager}, errors::AnyError, network_ids::{self, TypeIDs}, packet::{self, DecodedPacket, OutgoingFrameBuilder, transmission_ctrl::TSMCtrlInfo}};
 
 pub struct TimestampedData<T> {
     time: time::Instant,
@@ -47,13 +47,18 @@ pub struct ConnectionStatistics {
 #[derive(Clone, Copy)]
 #[derive(PartialEq, Eq)]
 pub enum RadioConnectionStatus {
+    /// Connection is completely lost
     LOST,
+    /// Connection is lost to peer, but we are actively transmitting packets and trying to reach them
     SEARCHING,
-    UPLINKING,
-    DOWNLINKING,
+    /// Connection Established, transmising packets to peer
+    TRANSMITTING,
+    /// Connection Established, listening for packets from peer
+    LISTENING,
 }
 
 pub struct RadioConnectionManager<'a> {
+    // configuration
     is_downlink: bool,
 
     consumer_mgmt: &'a ConsumerManager,
@@ -61,14 +66,12 @@ pub struct RadioConnectionManager<'a> {
     frame_builder: OutgoingFrameBuilder<'a>,
     current_status: RadioConnectionStatus,
     
-    negotiated_state: NegotiatedState,
-    pending_state: Option<NegotiatedState>, 
-
+    // transmission control
     last_tsm: TSMCtrlInfo,
     last_transmit_end_time: time::Instant,
+    last_packet_received_time: time::Instant,
 
-    negotiate_handler: Rc<data_handlers::r_negotiate::NegotiateHandler>,
-
+    // stastistics 
     stats: ConnectionStatistics, 
     recent_packets_losts: VecDeque<TimestampedData<u8>>, // u8 respresent number of packets lost
     recent_packets_received: VecDeque<TimestampedData<usize>>, // u8 respresent packet sizes
@@ -77,21 +80,18 @@ pub struct RadioConnectionManager<'a> {
 impl<'a> RadioConnectionManager<'a> {
     pub fn new_uplink(
         consumer_mgmt: &'a ConsumerManager, producer_mgmt: &'a ProducerManager,
-        negotiate_handler: Rc<data_handlers::r_negotiate::NegotiateHandler>,
     ) -> RadioConnectionManager<'a> {
-        Self::new(false, consumer_mgmt, producer_mgmt, negotiate_handler)
+        Self::new(false, consumer_mgmt, producer_mgmt)
     }
 
     pub fn new_downlink(
         consumer_mgmt: &'a ConsumerManager, producer_mgmt: &'a ProducerManager,
-        negotiate_handler: Rc<data_handlers::r_negotiate::NegotiateHandler>,
     ) -> RadioConnectionManager<'a> {
-        Self::new(true, consumer_mgmt, producer_mgmt, negotiate_handler)
+        Self::new(true, consumer_mgmt, producer_mgmt)
     }
 
     pub fn new(is_downlink: bool,
         consumer_mgmt: &'a ConsumerManager, producer_mgmt: &'a ProducerManager,
-        negotiate_handler: Rc<data_handlers::r_negotiate::NegotiateHandler>,
     ) -> RadioConnectionManager<'a> {
 
         RadioConnectionManager { 
@@ -102,13 +102,10 @@ impl<'a> RadioConnectionManager<'a> {
             frame_builder: OutgoingFrameBuilder::new(producer_mgmt),
 
             current_status: RadioConnectionStatus::LOST, 
-            negotiated_state: negotiate_handler.get_state(), 
-            pending_state: None,
 
             last_tsm: TSMCtrlInfo::default(),
             last_transmit_end_time: time::Instant::now(),
-
-            negotiate_handler: negotiate_handler,
+            last_packet_received_time: time::Instant::now(),
 
             stats: ConnectionStatistics::default(),
             recent_packets_losts: VecDeque::with_capacity((4 * PACKET_LOST_CALC_INTERVAL.as_secs()).try_into().unwrap_or(usize::MAX)),
@@ -132,23 +129,6 @@ impl<'a> RadioConnectionManager<'a> {
             recent_data_rate: recent_data_received.try_into().unwrap_or(u64::MAX) / PACKET_LOST_CALC_INTERVAL.as_secs(), 
             .. self.stats 
         }
-    }
-
-    pub fn negotiate(&mut self, 
-        downlink_ch: Option<LoraChannel>, downlink_cr: Option<LoraCodeRate>, 
-        uplink_ch: Option<LoraChannel>, uplink_cr: Option<LoraCodeRate>,
-        _effective_immediately: Option<bool>
-    ) {
-        let state = NegotiatedState {
-            downlink_ch: downlink_ch.unwrap_or(self.negotiated_state.downlink_ch),
-            downlink_coderate: downlink_cr.unwrap_or(self.negotiated_state.downlink_coderate),
-            uplink_ch: uplink_ch.unwrap_or(self.negotiated_state.uplink_ch),
-            uplink_coderate: uplink_cr.unwrap_or(self.negotiated_state.uplink_coderate),
-        };
-
-        self.negotiate_handler.send_negotiate(state);
-        self.pending_state = Some(state);
-        // TODO implenment effective immediate negotiate 
     }
 
     #[inline]
@@ -176,29 +156,6 @@ impl<'a> RadioConnectionManager<'a> {
         self.recent_packets_received.push_back(TimestampedData::new(now, data_size));
     }
 
-    fn update_protocol_state(&mut self, packets_lost: u8) {
-        if packets_lost != 0 && self.pending_state.is_some() {
-            // reset pending state if we experienced a packet lost since we last sent out a pending state
-            self.pending_state = None; 
-        }
-
-        // handle negotiations if there are negotiations 
-        if self.negotiate_handler.has_new_state() {
-            let s = self.negotiate_handler.get_state();
-            // we have a pending state waiting to be confirmed and it's confirmed successfully
-            if let Some(p) = self.pending_state && s == p {
-                self.negotiated_state = s;  // use new negotiated state
-                self.pending_state = None;
-            } else { // new negotiate request or failed to confirm due to requesting a different negotiate 
-                self.negotiate_handler.send_negotiate(s); // send confirm negotiate responding to request 
-                self.pending_state = Some(s); // expect next packet to contain confirm negotiate
-            }
-        // didn't receive a negotiate when we expected one
-        } else if self.pending_state.is_some() {
-            self.pending_state = None;
-        }
-    }
-
     fn construct_frame(&mut self) -> Vec<BufferType> {
         self.frame_builder.gather_all();
         self.frame_builder.build(self.last_tsm)
@@ -208,13 +165,10 @@ impl<'a> RadioConnectionManager<'a> {
         self.last_transmit_end_time = time::Instant::now();
     }
 
-    // expects to be called as soon an inbound packet is received
-    // expects to not be called before all outbound packets have been sent
-    pub fn update(&mut self, busy_receive: bool, mut received_packets: Vec<DecodedPacket>) -> Vec<BufferType> {
+    #[inline]
+    fn receive_and_consume_packets(&mut self, mut received_packets: Vec<DecodedPacket>, now: time::Instant) {
         // sort decoded packets by frame number 
         DecodedPacket::sort_packets(&mut received_packets, self.last_tsm);
-
-        let now = time::Instant::now();
         for packet in received_packets {
             let mut data_size = 0;
             let packets_lost = packet.tsm_ctrl.num_packets_from_last(self.last_tsm);
@@ -226,13 +180,29 @@ impl<'a> RadioConnectionManager<'a> {
                     println!("Encountered error while consuming data section: {}", e);
                 }
             }
-            self.update_protocol_state(packets_lost);
 
             self.update_statistics(now, packets_lost, data_size);
         }
+    }
+
+    // expects to be called as soon an inbound packet is received
+    // expects to not be called before all outbound packets have been sent
+    pub fn update(&mut self, busy_receive: bool, received_packets: Vec<DecodedPacket>) -> Vec<BufferType> {
+        let now = time::Instant::now();
+
+        if received_packets.is_empty() {
+            if self.last_packet_received_time.saturating_duration_since(now) >  common_config::CONNECTION_LOST_AFTER_PERIOD {
+                self.current_status = RadioConnectionStatus::LOST;
+            }
+        } else {
+            self.last_packet_received_time = now;
+            self.receive_and_consume_packets(received_packets, now);
+        }
+        
 
         // peer has ended transmission, we can begin transmitting our data
         if self.last_tsm.is_eot() {
+            self.current_status = RadioConnectionStatus::TRANSMITTING;
             return self.construct_frame();
         }
 
@@ -247,22 +217,25 @@ impl<'a> RadioConnectionManager<'a> {
             if 
                 // UPLINK failed to start transmit within transmit begin period
                 (!busy_receive && tslt > UPLINK_TRANSMIT_BEGIN_PERIOD)
-                // UPLINK transmitted for too long
+                // UPLINK transmitted for too long or unrelated transmission taking up freq
                 || tslt > UPLINK_TRANSMIT_TIMEOUT_PERIOD
-            { 
+            {
+                if RadioConnectionStatus::LOST == self.current_status {
+                    self.current_status = RadioConnectionStatus::SEARCHING; 
+                } else {
+                    self.current_status = RadioConnectionStatus::TRANSMITTING;
+                }
+                
                 return self.construct_frame(); // assume downlink window open, start transmit and stop waiting for receive 
             }
         }
 
-        vec![]
+        self.current_status = RadioConnectionStatus::LISTENING;
+
+        vec![] // returning nothing to transmit
     }
 
     pub const fn get_status(&self) -> RadioConnectionStatus {
         return self.current_status;
     }
-
-    pub const fn get_negotiated_state(&self) -> NegotiatedState {
-        self.negotiated_state
-    }
-
 }

@@ -10,7 +10,7 @@ pub enum TypeIDs {
     // ids allocated here are: [0, 10)
 
     Reset = 1,
-    ConnStateNegotiate = 2,
+    QOSNotify = 2, // Quality of service notify
 
     ACK = 9,
 

@@ -99,11 +99,25 @@ impl<'a> OutgoingFrameBuilder<'a> {
     }
 }
 
+
+#[derive(Debug)]
+#[derive(PartialEq)]
+#[derive(Clone, Copy)]
+#[derive(Default)]
+pub struct PacketMetadata {
+    pub length: usize,
+    pub snr: f32,
+    pub frequency: u32, 
+    pub sf: SpreadFactor,
+    pub coderate: LoraCodeRate
+}
+
 #[derive(Debug)]
 #[derive(PartialEq)]
 pub struct DecodedPacket {
     pub tsm_ctrl: TSMCtrlInfo,
     pub data_sections: Vec<DecodedDataSection>,
+    pub meta: PacketMetadata,
 }
 impl DecodedPacket {
     pub fn sort_packets(packets: &mut Vec<DecodedPacket>, last_tsm: TSMCtrlInfo) {
@@ -113,13 +127,21 @@ impl DecodedPacket {
     }
 }
 
-// consumes packet data, calling all corrosponding consumers
-pub fn decode_incoming_packet(consumer_mg: &ConsumerManager, header_packet_size: u8, data: BufferType) 
-    -> Result<DecodedPacket, AnyError> {
-    let tsm_ctrl = TSMCtrlInfo::try_from_wire(&data[0..2], header_packet_size)?;
+#[derive(Debug)]
+#[derive(PartialEq)]
+#[derive(Clone)]
+pub struct ReceivedPacket {
+    pub data: BufferType,
+    pub meta: PacketMetadata
+}
+
+impl ReceivedPacket {
+    pub fn decode(self, consumer_mg: &ConsumerManager) -> Result<DecodedPacket, AnyError> {
+        let tsm_ctrl = TSMCtrlInfo::try_from_wire(&self.data[0..2], self.meta.length as u8)?;
     
-    let ds = decode_data_sections(&consumer_mg, &data[2..])?;
-    Ok(DecodedPacket { tsm_ctrl, data_sections: ds})
+        let ds = decode_data_sections(&consumer_mg, &self.data[2..])?;
+        Ok(DecodedPacket { meta: self.meta, tsm_ctrl, data_sections: ds })
+    } 
 }
 
 #[cfg(test)]
@@ -155,17 +177,24 @@ mod tests {
     fn test_consume_incoming_packet() {
         let consumers = ConsumerManager::new();
 
-        assert!(matches!(decode_incoming_packet(&consumers, 0, vec![common_config::LORA_REGONATION_CODE ^ 0x0, 0x0, 0xEE]), Err(e) if e.is::<errors::DecodeUnknownTypeError>()));
-        assert!(decode_incoming_packet(&consumers, 0, vec![common_config::LORA_REGONATION_CODE ^ 0x0, 0x0]).is_ok());
+        assert!(matches!(ReceivedPacket { data: vec![common_config::LORA_REGONATION_CODE ^ 0x0, 0x0, 0xEE], meta: PacketMetadata::default() }.decode(&consumers), Err(e) if e.is::<errors::DecodeUnknownTypeError>()));
+        assert!(ReceivedPacket { data: vec![common_config::LORA_REGONATION_CODE ^ 0x0, 0x0], meta: PacketMetadata::default() }.decode(&consumers).is_ok());
 
-        assert!(decode_incoming_packet(&consumers, 83, [
-            TSMCtrlInfo::new(120_U7, true).to_wire(83),
-            vec![0xFB], vec![0x00; 3], vec![0xFC], vec![0x00; 11], vec![0xFD], vec![0x00; 64]
-        ].concat()).is_ok());
+        assert!(
+            ReceivedPacket { data: [
+                TSMCtrlInfo::new(120_U7, true).to_wire(83),
+                vec![0xFB], vec![0x00; 3], vec![0xFC], vec![0x00; 11], vec![0xFD], vec![0x00; 64]
+                ].concat(),
+            meta: PacketMetadata { length: 83, ..Default::default() } }
+        .decode(&consumers).is_ok());
 
-        assert!(decode_incoming_packet(&consumers, 83, [
-            TSMCtrlInfo::new(120_U7, true).to_wire(81),
-            vec![0xFB], vec![0x00; 3], vec![0xFC], vec![0x00; 11], vec![0xFD], vec![0x00; 64]
-        ].concat()).is_err());
+        
+        assert!(
+            ReceivedPacket { data: [
+                TSMCtrlInfo::new(120_U7, true).to_wire(81),
+                vec![0xFB], vec![0x00; 3], vec![0xFC], vec![0x00; 11], vec![0xFD], vec![0x00; 64]
+                ].concat(),
+            meta: PacketMetadata { length: 83, ..Default::default() } }
+        .decode(&consumers).is_err());
     }
 }

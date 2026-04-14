@@ -1,6 +1,6 @@
 use std::{rc::Rc, thread::sleep, time::Duration};
 
-use crate::{common::{Bandwidth, BufferType, LoraChannel, LoraCodeRate}, common_config::{ALLOW_CH_CHANGE, DOWNLINK_CH, INITIAL_CODE_RATE, LORA_PREAMBLE_LENGTH, UPLINK_CH}, data_handlers::{ConsumerManager, DataConsumer, ProducerManager, altimeter::Producer, r_negotiate::NegotiatedState}, network::conn_mgr::RadioConnectionManager, packet::{DecodedPacket, OutgoingFrameBuilder, data_section::{DecodedDataSection, decode_data_sections}, transmission_ctrl::TSMCtrlInfo}, sx1302::{SX1302, backing::{DeviceBackingAPI, PhysicalDevice}, conf::{DEFAULT_SX1302_CONFIG, SX1302Configuration}, error::TrySendError, types::{OutgoingPacketConfig, OutgoingPacketModulation, RadioStatus, Radios}}};
+use crate::{common::{Bandwidth, BufferType, LoraChannel, LoraCodeRate}, common_config::{ALLOW_CH_CHANGE, DOWNLINK_CH, INITIAL_CODE_RATE, LORA_PREAMBLE_LENGTH, UPLINK_CH}, data_handlers::{ConsumerManager, DataConsumer, ProducerManager, altimeter::Producer}, network::conn_mgr::RadioConnectionManager, packet::{DecodedPacket, OutgoingFrameBuilder, data_section::{DecodedDataSection, decode_data_sections}, transmission_ctrl::TSMCtrlInfo}, sx1302::{SX1302, backing::{DeviceBackingAPI, PhysicalDevice}, conf::{DEFAULT_SX1302_CONFIG, SX1302Configuration}, error::TrySendError, types::{OutgoingPacketConfig, OutgoingPacketModulation, RadioStatus, Radios}}};
 use crate::network_ids::TypeIDs;
 
 #[cfg(test)]
@@ -31,16 +31,8 @@ fn main() {
     let altimeter1 = Rc::new(data_handlers::prng_data_source::PRNG::new(20));
     consumer_mgmt.add(TypeIDs::Altimeter1, altimeter1.clone());
 
-    let negotiate_handler = Rc::new(data_handlers::r_negotiate::NegotiateHandler::new(NegotiatedState {
-        downlink_ch: DOWNLINK_CH,
-        downlink_coderate: INITIAL_CODE_RATE,
-        uplink_ch: UPLINK_CH,
-        uplink_coderate: INITIAL_CODE_RATE,
-    }));
-
     let mut connection_mgr = RadioConnectionManager::new_uplink(
         &consumer_mgmt, &producer_mgmt,
-        negotiate_handler
     );
 
     // configure sx1302
@@ -60,8 +52,8 @@ fn main() {
             Ok(packets) => {
                 decoded_packets.reserve(packets.len());
                 // if have packets, decode them 
-                for (size, data) in packets {
-                    match packet::decode_incoming_packet(&consumer_mgmt, size, data) {
+                for p in packets {
+                    match p.decode(&consumer_mgmt) {
                         Ok(v) => decoded_packets.push(v),
                         Err(e) => println!("Encountered error while decoding packets: {}", e)
                     };
@@ -70,21 +62,15 @@ fn main() {
             Err(_) => println!("Encountered error while trying to receive."),
         };
 
-        let outbound_packets = connection_mgr.update(
-        match radio.get_radio_status(Radios::Radio1RxOnly) {
-            Ok(RadioStatus::Busy) => true,
-            Err(e) => { println!("Encountered error while trying to get radio status: {}", e); false },
-            _ => false
-        }, decoded_packets);
+        let outbound_packets = connection_mgr.update(radio.is_currently_receiving(), decoded_packets);
 
         if !outbound_packets.is_empty() {
-            let conn_state= connection_mgr.get_negotiated_state();
             let pkt_config = OutgoingPacketConfig {
-                freq_hz: if ALLOW_CH_CHANGE { conn_state.uplink_ch.into() } else { UPLINK_CH.into() },
+                freq_hz: UPLINK_CH.into(),
                 modulation: OutgoingPacketModulation::LoRa { 
                     bandwidth: Bandwidth::Low125khz, 
-                    spread_factor: 7, 
-                    coderate: conn_state.uplink_coderate, 
+                    spread_factor: common::SpreadFactor::SF7, 
+                    coderate: INITIAL_CODE_RATE, 
                     no_header: false, 
                     invert_polarity: false, 
                     preamble_length: LORA_PREAMBLE_LENGTH
@@ -96,7 +82,7 @@ fn main() {
             for packet in outbound_packets {
                 loop {
                     match radio.try_send(pkt_config, &packet) {
-                        Ok(_) => break,
+                        Ok(t) => sleep(t), // sleep for packets to finish transmit
                         Err(TrySendError::RadioBusy) => { // retry slightly later if radio is still busy
                             sleep(Duration::from_micros(333));
                             continue;
@@ -107,11 +93,12 @@ fn main() {
                         }
                     };
                 }
+                connection_mgr.update_transmit_finish();
             }
-        }        
+        }
 
         // sleep by what ever ms for new packets to appear
-        sleep(Duration::from_millis(1000));
+        // sleep(Duration::from_millis(360/1000));
     }; 
 }
 

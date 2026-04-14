@@ -1,7 +1,7 @@
 use core::num;
 use std::array;
 
-use crate::{common::{Bandwidth, LoraCodeRate}, sx1302::{self, bindings_loragw_hal}};
+use crate::{common::{Bandwidth, LoraCodeRate, SpreadFactor}, errors, sx1302::{self, bindings_loragw_hal}};
 
 //////////////////////////////////////////////////
 /// All common public data types and functions ///
@@ -62,6 +62,19 @@ impl From<LoraCodeRate> for u8 {
         }
     }
 }
+impl TryFrom<u8> for LoraCodeRate {
+    type Error = errors::InvalidData;
+
+    fn try_from(value: u8) -> Result<Self, Self::Error> {
+        match value {
+            bindings_loragw_hal::CR_LORA_4_5 => Ok(LoraCodeRate::CR1),
+            bindings_loragw_hal::CR_LORA_4_6 => Ok(LoraCodeRate::CR2),
+            bindings_loragw_hal::CR_LORA_4_7 => Ok(LoraCodeRate::CR3),
+            bindings_loragw_hal::CR_LORA_4_8 => Ok(LoraCodeRate::CR4),
+            _ => Err(errors::InvalidData(format!("Invalid data: {value} is not a valid SX1302 lora code rate")))
+        }
+    }
+}
 
 /// Outgoing/Transmit Packet Modulation configuration 
 #[derive(Debug, Clone, Copy, PartialEq)]
@@ -87,7 +100,7 @@ pub enum OutgoingPacketModulation {
         /// LoRa modulation/transmit channel bandwidth
         bandwidth: Bandwidth,
         /// LoRa spread factor, valid between SF of [5,12]
-        spread_factor: u32,
+        spread_factor: SpreadFactor,
         /// Error correcting level to use for the packet
         coderate: LoraCodeRate,
         /// Is implicit header enabled for this transmission

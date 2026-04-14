@@ -2,52 +2,53 @@ use std::{cell::RefCell};
 
 use bitvec::vec;
 
-use crate::{common::{BufferType, LoraChannel, LoraCodeRate, assert_np}, data_handlers::{DataConsumer, DataProducer}, errors::{self, AnyError}};
+use crate::{common::{BufferType, LoraChannel, LoraCodeRate, SpreadFactor, assert_np}, data_handlers::{DataConsumer, DataProducer}, errors::{self, AnyError}};
 
 pub const NEGOTIATE_SIZE: usize = 2; 
+pub const QOS_LINK_STATE_ECC_INC_THRESH: f32 = 0.3;
 
 #[derive(Debug)]
-#[derive(PartialEq)]
-#[derive(Clone, Copy)]
-pub struct NegotiatedState {
-    pub downlink_ch: LoraChannel,
-    pub downlink_coderate: LoraCodeRate,
-
-    pub uplink_ch: LoraChannel,
-    pub uplink_coderate: LoraCodeRate,
-}
-
-#[derive(Debug)]
-pub struct NegotiateHandler {
-    current_state: RefCell<NegotiatedState>,
+pub struct QOSHandler {
+    self_spread_factor: RefCell<SpreadFactor>,
+    self_coderate: RefCell<LoraCodeRate>,
     need_sending: RefCell<bool>,
-    has_new_state: RefCell<bool>,
 }
 
-impl NegotiateHandler {
-    pub fn new(initial_state: NegotiatedState) -> NegotiateHandler {
-        NegotiateHandler { current_state: initial_state.into(), need_sending: false.into(), has_new_state: false.into() }
+impl QOSHandler {
+    pub fn new(initial_sf: SpreadFactor, initial_coderate: LoraCodeRate) -> QOSHandler {
+        QOSHandler { self_spread_factor: initial_sf.into(), self_coderate: initial_coderate.into(), need_sending: false.into() }
     }
 
-    pub fn send_negotiate(&self, state: NegotiatedState) {
-        self.need_sending.replace(true);
-        self.current_state.replace(state);
-    }
+    pub fn compute_and_send(&self, packet_lost_rate: f32) {
+        if packet_lost_rate > QOS_LINK_STATE_ECC_INC_THRESH {
+            let mut cr = self.self_coderate.borrow_mut();
+            if *cr != LoraCodeRate::MAX { 
+                *cr = cr.increment();
+                self.need_sending.replace(true);
+                return;
+            }
 
-    pub fn has_new_state(&self) -> bool {
-        *self.has_new_state.borrow()
-    } 
-
-    pub fn get_state(&self) -> NegotiatedState {
-        if *self.has_new_state.borrow() {
-            self.has_new_state.replace(false);
+            let mut sf = self.self_spread_factor.borrow_mut();
+            if *sf != SpreadFactor::MAX {
+                *sf = sf.increment();
+                self.need_sending.replace(true);
+            }
+            // other wise we are already at max allowed code rate && SF, so nothing we can do
         }
-        *self.current_state.borrow()
+    }
+
+    pub fn get_sf(&self) -> SpreadFactor {
+        *self.self_spread_factor.borrow()
+    }
+
+    pub fn get_datarate(&self) -> LoraCodeRate {
+        *self.self_coderate.borrow()
     }
 }
 
-impl DataProducer for NegotiateHandler {
+impl DataProducer for QOSHandler {
     fn produce(&self) -> Result<crate::common::BufferType, crate::errors::AnyError> {
+        
         let mut data = BufferType::with_capacity(NEGOTIATE_SIZE);
         
         let cur = self.current_state.borrow();
@@ -64,7 +65,7 @@ impl DataProducer for NegotiateHandler {
     }
 }
 
-impl DataConsumer for NegotiateHandler {
+impl DataConsumer for QOSHandler {
     fn consume(&self, buffer: crate::common::BufferType) -> Result<(), crate::errors::AnyError> {
         assert_np!(buffer.len() == NEGOTIATE_SIZE);
 
