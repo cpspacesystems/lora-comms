@@ -5,7 +5,9 @@ set -e
 SCRIPT_PATH="$(readlink -f "${BASH_SOURCE[0]}")"
 SCRIPT_DIR="$(dirname -- "${SCRIPT_PATH}")"
 
-cd "${SCRIPT_DIR}/lib"
+cd "${SCRIPT_DIR}"
+mkdir -p ./lib
+cd ./lib
 
 echo "Downloading LR11XX Driver"
 git clone https://github.com/Lora-net/SWDR001

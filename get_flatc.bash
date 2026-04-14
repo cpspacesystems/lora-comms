@@ -9,6 +9,14 @@ echo "downloading flatc to ${SCRIPT_DIR}/flatc"
 
 cd "${SCRIPT_DIR}"
 
-wget https://github.com/google/flatbuffers/releases/download/v25.12.19/Linux.flatc.binary.g++-13.zip
-unzip Linux.flatc.binary.g++-13.zip
-rm Linux.flatc.binary.g++-13.zip
+git clone https://github.com/google/flatbuffers -b v25.12.19 --depth 1
+cd ./flatbuffers
+cmake -S . -B ./build -DCMAKE_BUILD_TYPE=Release
+cmake --build ./build --config Release -j $(nproc)
+
+cd ./build
+./flattests
+mv ./flatc "${SCRIPT_DIR}/flatc"
+
+cd "${SCRIPT_DIR}"
+sudo rm -r ./flatbuffers
