@@ -736,11 +736,16 @@ class LR11x0: public LRxxxx {
 
     /*! \copydoc PhysicalLayer::launchMode */
     int16_t launchMode() override;
+
+    Module* getMod() override;
+
+    int16_t reboot(bool stay);
+
+    int16_t getVersion(uint8_t* hw, uint8_t* device, uint8_t* major, uint8_t* minor);
     
 #if !RADIOLIB_GODMODE && !RADIOLIB_LOW_LEVEL
   protected:
 #endif
-    Module* getMod() override;
 
     // method that applies some magic workaround for specific bitrate, frequency deviation,
     // receiver bandwidth and carrier frequencies for GFSK (and resets it in all other cases)
@@ -754,7 +759,7 @@ class LR11x0: public LRxxxx {
     int16_t clearRxBuffer(void);
     int16_t writeRegMemMask32(uint32_t addr, uint32_t mask, uint32_t data);
 
-    int16_t getVersion(uint8_t* hw, uint8_t* device, uint8_t* major, uint8_t* minor);
+//    int16_t getVersion(uint8_t* hw, uint8_t* device, uint8_t* major, uint8_t* minor);
     int16_t getErrors(uint16_t* err);
     int16_t clearErrors(void);
     int16_t calibrate(uint8_t params);
@@ -765,7 +770,7 @@ class LR11x0: public LRxxxx {
     int16_t clearIrqState(uint32_t irq);
     int16_t configLfClock(uint8_t setup);
     int16_t setTcxoMode(uint8_t tune, uint32_t delay);
-    int16_t reboot(bool stay);
+//    int16_t reboot(bool stay);
     int16_t getVbat(float* vbat);
     int16_t getTemp(float* temp);
     int16_t setFs(void);

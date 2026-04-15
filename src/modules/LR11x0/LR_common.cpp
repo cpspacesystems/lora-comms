@@ -414,7 +414,10 @@ int16_t LRxxxx::SPIcommand(uint16_t cmd, bool write, uint8_t* data, size_t len, 
 
     // read the result without command
     this->mod->spiConfig.widths[RADIOLIB_MODULE_SPI_WIDTH_CMD] = Module::BITS_0;
+    auto savedCb = this->mod->spiConfig.parseStatusCb;
+    this->mod->spiConfig.parseStatusCb = nullptr;
     state = this->mod->SPIreadStream(RADIOLIB_LRXXXX_CMD_NOP, data, len, true, false);
+    this->mod->spiConfig.parseStatusCb = savedCb;
     this->mod->spiConfig.widths[RADIOLIB_MODULE_SPI_WIDTH_CMD] = Module::BITS_16;
 
   } else {

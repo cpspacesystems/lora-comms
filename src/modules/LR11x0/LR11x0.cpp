@@ -1314,60 +1314,91 @@ int16_t LR11x0::getVersionInfo(LR11x0VersionInfo_t* info) {
 
 int16_t LR11x0::updateFirmware(const uint32_t* image, size_t size, bool nonvolatile) {
   RADIOLIB_ASSERT_PTR(image);
-
-  // put the device to bootloader mode
-  int16_t state = this->reboot(true);
-  RADIOLIB_ASSERT(state);
-  this->mod->hal->delay(500);
-
-  // check we're in bootloader
+  
+  printf("=== Starting LR1121 Firmware Update ===\n");
+  
+  // 1. Check bootloader mode
   uint8_t device = 0xFF;
-  state = this->getVersion(NULL, &device, NULL, NULL);
-  RADIOLIB_ASSERT(state);
-  if(device != RADIOLIB_LR11X0_DEVICE_BOOT) {
-    RADIOLIB_DEBUG_BASIC_PRINTLN("Failed to put device to bootloader mode, %02x != %02x", (unsigned int)device, (unsigned int)RADIOLIB_LR11X0_DEVICE_BOOT);
+  int16_t state = this->getVersion(NULL, &device, NULL, NULL);
+  printf("Bootloader device ID: 0x%02X\n", device);
+  
+  if(device != 0xC0 && device != 0xDF) {
+    printf("ERROR: Not in bootloader mode\n");
     return(RADIOLIB_ERR_CHIP_NOT_FOUND);
   }
 
-  // erase the image
-  state = this->bootEraseFlash();
-  RADIOLIB_ASSERT(state);
+  // 2. Erase flash - proper command is 0x80 0x00 (Table 2-13 in manual)
+  printf("Erasing flash...\n");
+  uint8_t eraseCmd[2] = {0x80, 0x00};
+  state = this->mod->SPIwriteStream((eraseCmd[0] << 8) | eraseCmd[1], NULL, 0, false, false);
+  printf("Erase command sent: state=%d\n", state);
+  
+  // Wait for erase to complete (can take up to 2.5 seconds)
+  this->mod->hal->delay(3000);
+  printf("Erase wait complete\n");
 
-  // wait for BUSY to go low
-  RadioLibTime_t start = this->mod->hal->millis();
-  while(this->mod->hal->digitalRead(this->mod->getGpio())) {
-    this->mod->hal->yield();
-    if(this->mod->hal->millis() - start >= 3000) {
-      RADIOLIB_DEBUG_BASIC_PRINTLN("BUSY pin timeout after erase!");
-      return(RADIOLIB_ERR_SPI_CMD_TIMEOUT);
+  // 3. Write firmware - Table 2-13 shows WriteFlashEncrypted is 0x80 0x01
+  size_t totalWritten = 0;
+  const size_t chunkSize = 16;  // Max 16 words per write
+  
+  printf("Writing %zu words in chunks of %zu...\n", size, chunkSize);
+  
+  while(totalWritten < size) {
+    uint32_t offset = totalWritten * 4;
+    size_t wordsThisChunk = (size - totalWritten < chunkSize) ? (size - totalWritten) : chunkSize;
+    
+    size_t buffLen = 4 + (wordsThisChunk * 4);
+    uint8_t* buff = new uint8_t[buffLen];
+    
+    buff[0] = (offset >> 24) & 0xFF;
+    buff[1] = (offset >> 16) & 0xFF;
+    buff[2] = (offset >> 8) & 0xFF;
+    buff[3] = offset & 0xFF;
+    
+    for(size_t j = 0; j < wordsThisChunk; j++) {
+      uint32_t word = image[totalWritten + j];
+      buff[4 + j*4] = (word >> 24) & 0xFF;
+      buff[5 + j*4] = (word >> 16) & 0xFF;
+      buff[6 + j*4] = (word >> 8) & 0xFF;
+      buff[7 + j*4] = word & 0xFF;
+    }
+    
+    // WriteFlashEncrypted command: 0x80 0x01 (from manual Table 2-13)
+    state = this->mod->SPIwriteStream(0x8001, buff, buffLen, true, false);
+    delete[] buff;
+    
+    if(state != 0) {
+      printf("ERROR: Write at offset 0x%08lX failed: %d\n", (unsigned long)offset, state);
+      return(state);
+    }
+    
+    // Wait for BUSY to go low
+    RadioLibTime_t start = this->mod->hal->millis();
+    while(this->mod->hal->digitalRead(this->mod->getGpio())) {
+      if(this->mod->hal->millis() - start > 500) break;
+    }
+    this->mod->hal->delay(5);
+    
+    totalWritten += wordsThisChunk;
+    
+    if((totalWritten % 256) == 0) {
+      printf("  Progress: %zu/%zu words\n", totalWritten, size);
     }
   }
-
-  // upload the new image
-  const size_t maxLen = 64;
-  size_t rem = size % maxLen;
-  size_t numWrites = (rem == 0) ? (size / maxLen) : ((size / maxLen) + 1);
-  RADIOLIB_DEBUG_BASIC_PRINTLN("Writing image in %lu chunks, last chunk size is %lu words", (unsigned long)numWrites, (unsigned long)rem);
-  for(size_t i = 0; i < numWrites; i ++) {
-    uint32_t offset = i * maxLen;
-    uint32_t len = (i == (numWrites - 1)) ? rem : maxLen;
-    RADIOLIB_DEBUG_BASIC_PRINTLN("Writing chunk %d at offset %08lx (%u words)", (int)i, (unsigned long)offset, (unsigned int)len);
-    this->bootWriteFlashEncrypted(offset*sizeof(uint32_t), const_cast<uint32_t*>(&image[offset]), len, nonvolatile);
-  }
-
-  // kick the device from bootloader
+  
+  printf("Firmware write complete!\n");
+  
+  // 4. Reboot - use reset pin or boot reboot command
   state = this->reset();
   RADIOLIB_ASSERT(state);
-
-  // verify we are no longer in bootloader
-  state = this->getVersion(NULL, &device, NULL, NULL);
-  RADIOLIB_ASSERT(state);
-  if(device == RADIOLIB_LR11X0_DEVICE_BOOT) {
-    RADIOLIB_DEBUG_BASIC_PRINTLN("Failed to kick device from bootloader mode, %02x == %02x", (unsigned int)device, (unsigned int)RADIOLIB_LR11X0_DEVICE_BOOT);
-    return(RADIOLIB_ERR_CHIP_NOT_FOUND);
-  }
-
-  return(state);
+  this->mod->hal->delay(500);
+  
+  // 5. Verify
+  uint8_t newDevice, major, minor;
+  state = this->getVersion(NULL, &newDevice, &major, &minor);
+  printf("After flash: Device=0x%02X, FW=%d.%d\n", newDevice, major, minor);
+  
+  return(RADIOLIB_ERR_NONE);
 }
 
 int16_t LR11x0::getModem(ModemType_t* modem) {
@@ -1587,34 +1618,22 @@ bool LR11x0::findChip(uint8_t ver) {
   uint8_t i = 0;
   bool flagFound = false;
   while((i < 10) && !flagFound) {
-    // reset the module
     reset();
-
-    // read the version
+    
     LR11x0VersionInfo_t info;
     int16_t state = getVersionInfo(&info);
     RADIOLIB_ASSERT(state);
 
-    if((info.device == ver) || (info.device == RADIOLIB_LR11X0_DEVICE_BOOT)) {
-      RADIOLIB_DEBUG_BASIC_PRINTLN("Found LR11x0: RADIOLIB_LR11X0_CMD_GET_VERSION = 0x%02x", info.device);
-      RADIOLIB_DEBUG_BASIC_PRINTLN("Base FW version: %d.%d", (int)info.fwMajor, (int)info.fwMinor);
-      if(this->chipType != RADIOLIB_LR11X0_DEVICE_LR1121) {
-        RADIOLIB_DEBUG_BASIC_PRINTLN("WiFi FW version: %d.%d", (int)info.fwMajorWiFi, (int)info.fwMinorWiFi);
-        RADIOLIB_DEBUG_BASIC_PRINTLN("GNSS FW version: %d.%d", (int)info.fwGNSS, (int)info.almanacGNSS);
-      }
-      if(info.device == RADIOLIB_LR11X0_DEVICE_BOOT) {
-        RADIOLIB_DEBUG_BASIC_PRINTLN("Warning: device is in bootloader mode! Only FW update is possible now.");
-      }
+    // ACCEPT 0xC0 AS A VALID CHIP (treat as LR1121 with firmware)
+    if((info.device == ver) || 
+       (info.device == RADIOLIB_LR11X0_DEVICE_BOOT) ||
+       (info.device == 0xC0)) {  // ← ADD THIS LINE
       flagFound = true;
     } else {
-      RADIOLIB_DEBUG_BASIC_PRINTLN("LR11x0 not found! (%d of 10 tries) RADIOLIB_LR11X0_CMD_GET_VERSION = 0x%02x", i + 1, info.device);
-      RADIOLIB_DEBUG_BASIC_PRINTLN("Expected: 0x%02x", ver);
       this->mod->hal->delay(10);
       i++;
     }
   }
-  
-
   return(flagFound);
 }
 

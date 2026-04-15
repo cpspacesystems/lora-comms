@@ -24,12 +24,13 @@ class PiHal : public RadioLibHal {
   public:
     // default constructor - initializes the base HAL and any needed private members
     //uint32_t spiSpeed = 2000000, uint8_t spiDevice = 0, uint8_t gpioDevice = 0 are defaults
-    PiHal(uint8_t spiChannel, uint32_t spiSpeed, uint8_t spiDevice, uint8_t gpioDevice)
+    PiHal(uint8_t spiChannel, uint32_t spiSpeed, uint8_t spiDevice, uint8_t gpioDevice, uint32_t busyPin)
       : RadioLibHal(PI_INPUT, PI_OUTPUT, LG_LOW, LG_HIGH, PI_RISING, PI_FALLING),
       _gpioDevice(gpioDevice),
       _spiDevice(spiDevice),
       _spiSpeed(spiSpeed),
-      _spiChannel(spiChannel) {
+      _spiChannel(spiChannel),
+      _busyPin(busyPin) {
     }
 
     void init() override {
@@ -165,7 +166,7 @@ class PiHal : public RadioLibHal {
     }
 
     RadioLibTime_t millis() override {
-      uint32_t time = lguTimestamp() / 1000000UL;
+      uint32_t time = lguTimestamp() / 1000UL;
       return time;
     }
 
@@ -192,24 +193,57 @@ class PiHal : public RadioLibHal {
       return(this->micros() - start);
     }
 
-    void spiBegin() {
-      if(_spiHandle < 0) {
-        if((_spiHandle = lgSpiOpen(_spiDevice, _spiChannel, _spiSpeed, 0)) < 0) {
-          fprintf(stderr, "Could not open SPI handle on 0: %s\n", lguErrorText(_spiHandle));
+  void spiBegin() {
+    if(_spiHandle < 0) {
+        // flags = 0x200000 disables kernel CS management (SPI_NO_CS)
+        // This lets RadioLib drive CS itself via GPIO
+        _spiHandle = lgSpiOpen(_spiChannel, _spiDevice, _spiSpeed, 0x200000);
+        
+        if(_spiHandle < 0) {
+            fprintf(stderr, "Could not open SPI%d.%d: %s\n",
+                    _spiChannel, _spiDevice, lguErrorText(_spiHandle));
+        } else {
+            printf("SPI opened successfully. Handle: %d\n", _spiHandle);
         }
-      }
     }
+}
 
-    void spiBeginTransaction() {}
-
-    void spiTransfer(uint8_t* out, size_t len, uint8_t* in) {
-      int result = lgSpiXfer(_spiHandle, (char *)out, (char*)in, len);
-      if(result < 0) {
-        fprintf(stderr, "Could not perform SPI transfer: %s\n", lguErrorText(result));
+void spiBeginTransaction() {
+  if(_busyPin != RADIOLIB_NC) {
+    uint32_t start = this->millis();
+    while(digitalRead(_busyPin) == LG_HIGH) {
+      if(this->millis() - start > 10000) { //used to be 10
+        printf("spiBeginTransaction: BUSY timeout after 3000ms!\n");
+        break;
       }
+      delayMicroseconds(100); // used to be 10
     }
+  }
+}
 
-    void spiEndTransaction() {}
+void spiTransfer(uint8_t* out, size_t len, uint8_t* in) {
+    // Print what we are sending
+    printf("SPI TX: ");
+    for(size_t i = 0; i < len; i++) printf("%02X ", out[i]);
+    printf("\n");
+
+    // Perform the actual transfer via the kernel
+    int result = lgSpiXfer(_spiHandle, (char *)out, (char*)in, len);
+
+    if(result < 0) {
+        fprintf(stderr, "SPI Transfer Failed: %s\n", lguErrorText(result));
+    } else {
+        // Print what the LR1121 sent back
+        printf("SPI RX: ");
+        for(size_t i = 0; i < len; i++) printf("%02X ", in[i]);
+        printf("\n");
+    }
+    
+    // RPi 5 is very fast; give the LR1121 a moment to breathe
+    delayMicroseconds(10); 
+}
+
+    void spiEndTransaction() {printf("spiEndTransaction\n");}
 
     void spiEnd() {
       if(_spiHandle >= 0) {
@@ -246,6 +280,7 @@ class PiHal : public RadioLibHal {
     const uint8_t _spiDevice;
     const unsigned int _spiSpeed;
     const uint8_t _spiChannel;
+    uint32_t _busyPin;
     int _gpioHandle = -1;
     int _spiHandle = -1;
 

@@ -21,7 +21,7 @@ extern "C" {
 /// @param rst 
 /// @param busy
 /// @return 
-Context* init(uint8_t spiChannel, uint32_t spiSpeed, uint8_t spiDevice, uint8_t gpioDevice, uint32_t cs, uint32_t irq, uint32_t rst, uint32_t busy);
+Context* init(uint8_t spiChannel, uint32_t spiSpeed, uint8_t spiDevice, uint8_t gpioDevice, uint32_t cs, uint32_t irq, uint32_t rst, uint32_t busy, uint32_t dio8);
 
 
 /// @brief 
@@ -95,6 +95,10 @@ int setPreambleLength(Context* context, size_t preambleLength);
 /// @brief 
 /// @param context 
 void end(Context* context);
+
+int flash_firmware(Context* context);
+
+int16_t reset(Context* context);
 
 #ifdef __cplusplus
 }
