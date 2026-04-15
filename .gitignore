@@ -1,6 +1,8 @@
 /target
 /temp
 /gen/**
+#cross complition targets
+/cross
 
 # source compiled dependencies 
 /lib/SWDR001
