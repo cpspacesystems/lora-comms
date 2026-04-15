@@ -10,7 +10,7 @@ pub type GPSTime = u64;
 /// lora radio channels
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum LoraChannel {
-    CH0, CH1, CH2, CH3, CH4, CH5, CH6, CH7, CH8HBW
+    CH0, CH1, CH2, CH3, CH4, CH5, CH6
 }
 // lora radio channels mapping
 impl From<LoraChannel> for u32 {    
@@ -23,8 +23,6 @@ impl From<LoraChannel> for u32 {
             LoraChannel::CH4 => common_config::LORA_125KHZ_CH4,
             LoraChannel::CH5 => common_config::LORA_125KHZ_CH5,
             LoraChannel::CH6 => common_config::LORA_125KHZ_CH6,
-            LoraChannel::CH7 => common_config::LORA_125KHZ_CH7,
-            LoraChannel::CH8HBW => common_config::LORA_500KHZ_CH8,
         }
     }    
 }
@@ -40,8 +38,6 @@ impl TryFrom<u32> for LoraChannel {
             common_config::LORA_125KHZ_CH4 => Ok(LoraChannel::CH4),
             common_config::LORA_125KHZ_CH5 => Ok(LoraChannel::CH5),
             common_config::LORA_125KHZ_CH6 => Ok(LoraChannel::CH6),
-            common_config::LORA_125KHZ_CH7 => Ok(LoraChannel::CH7),
-            common_config::LORA_500KHZ_CH8 => Ok(LoraChannel::CH8HBW),
             n => Err(errors::InvalidData(format!("{n} is not a frequency corrosponding to any Lora Channel!")))
         }
     }    

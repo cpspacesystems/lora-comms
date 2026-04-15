@@ -37,11 +37,22 @@ fn main() {
 
     // configure sx1302
     #[cfg(not(test))]
-    let mut radio: SX1302<PhysicalDevice> = SX1302::default();
+    let mut device = sx1302::backing::PhysicalDevice;
+    #[cfg(not(test))]
+    let mut radio: SX1302<PhysicalDevice> = SX1302::new(ground_config::SX1302_CONFIG, &mut device);
     #[cfg(test)]
     let mut utd = { UnitTestDevice::new() };
     #[cfg(test)]
     let mut radio: SX1302<UnitTestDevice> = SX1302::new(DEFAULT_SX1302_CONFIG, &mut utd);
+
+    if let Err(e) = radio.configure() {
+        println!("Encountered error while trying to configure the radio: {e}");
+        return;
+    };
+    if let Err(e) = radio.start() {
+        println!("Encountered error while trying to start the radio: {e}");
+        return;
+    }
 
     // start sx1302
     let mut f_exit = false;

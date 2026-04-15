@@ -8,19 +8,15 @@ use crate::common::{LoraChannel, LoraCodeRate};
 pub const MAX_PAYLOAD_SIZE:usize = 255;
 
 pub const BASE_FREQ: u32 = 907300000;
-pub const FREQ_OFFSET: u32 = 400_000; 
+pub const FREQ_OFFSET: u32 = 200_000; 
 
 pub const LORA_125KHZ_CH0: u32 = BASE_FREQ + 0 * FREQ_OFFSET;
-pub const LORA_125KHZ_CH1: u32 = BASE_FREQ + 1 * FREQ_OFFSET;
-pub const LORA_125KHZ_CH2: u32 = BASE_FREQ + 2 * FREQ_OFFSET;
-pub const LORA_125KHZ_CH3: u32 = BASE_FREQ + 3 * FREQ_OFFSET;
-pub const LORA_125KHZ_CH4: u32 = BASE_FREQ + 4 * FREQ_OFFSET;
-pub const LORA_125KHZ_CH5: u32 = BASE_FREQ + 5 * FREQ_OFFSET;
-pub const LORA_125KHZ_CH6: u32 = BASE_FREQ + 6 * FREQ_OFFSET;
-pub const LORA_125KHZ_CH7: u32 = BASE_FREQ + 7 * FREQ_OFFSET;
-
-pub const LORA_500KHZ_CH8: u32 = BASE_FREQ + 10 * FREQ_OFFSET;
-pub const LORA_500KHZ_CH8_SF: u32 = 7; // 5 to 12;
+pub const LORA_125KHZ_CH1: u32 = BASE_FREQ - 1 * FREQ_OFFSET;
+pub const LORA_125KHZ_CH2: u32 = BASE_FREQ + 1 * FREQ_OFFSET;
+pub const LORA_125KHZ_CH3: u32 = BASE_FREQ - 2 * FREQ_OFFSET;
+pub const LORA_125KHZ_CH4: u32 = BASE_FREQ + 2 * FREQ_OFFSET;
+pub const LORA_125KHZ_CH5: u32 = BASE_FREQ - 3 * FREQ_OFFSET;
+pub const LORA_125KHZ_CH6: u32 = BASE_FREQ + 3 * FREQ_OFFSET;
 
 pub const LORA_PREAMBLE_LENGTH: u16 = 8; 
 
