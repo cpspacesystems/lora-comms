@@ -32,7 +32,10 @@ impl<'a> OutgoingFrameBuilder<'a> {
             return Err(errors::GatherUnknownTypeError(id as u8).into());
         };
 
-        let data = create_data_section(id, producer.produce()?)?; 
+        let raw = if let Some(r) = producer.borrow_mut().produce()? { r } else {
+            return Ok(self);
+        };
+        let data = create_data_section(id, raw)?; 
         self.data_sections.push(data);
         Ok(self)
     }
@@ -41,9 +44,9 @@ impl<'a> OutgoingFrameBuilder<'a> {
     /// <br> This function will silently skip over any producers that errored while trying to produce
     pub fn gather_all(&mut self) {
         for (id, p) in self.producer_mg.iter_producers() {
-            let data = match p.produce() {
-                Ok(v) => v,
-                Err(_) => continue,
+            let data = match p.borrow_mut().produce() {
+                Ok(Some(v)) => v,
+                _ => continue,
             };
 
             let ds = match create_data_section(*id, data) {
@@ -82,6 +85,9 @@ impl<'a> OutgoingFrameBuilder<'a> {
         }
 
         if packets.len() == 0 {
+            packets.push(BufferType::new());
+            last_tsm.advance(true);
+            Self::create_final_packet(&last_tsm, &mut packets[0]);
             return packets;
         }
 
@@ -158,7 +164,7 @@ mod tests {
         let producers = ProducerManager::new();
         let mut builder =  OutgoingFrameBuilder::new(&producers);
 
-        assert!(builder.build(TSMCtrlInfo::default()).is_empty());
+        assert_eq!(builder.build(TSMCtrlInfo::default()), &[TSMCtrlInfo::default().advance(true).to_wire(2)]);
 
         assert!(matches!(builder.gather_by_id(TypeIDs::from_repr(255).unwrap()), Err(e) if e.is::<errors::GatherUnknownTypeError>()));
 

@@ -25,9 +25,10 @@ impl TSMCtrlInfo {
         TSMCtrlInfo { packet_number, is_eot }
     }
 
-    pub fn advance(&mut self, is_eot: bool) {
+    pub fn advance(&mut self, is_eot: bool) -> &mut Self {
         self.packet_number = self.packet_number.wrapping_add(1_U7);
         self.is_eot = is_eot;
+        self
     }
     #[inline]
     pub const fn get_packet_number(&self) -> u8 {

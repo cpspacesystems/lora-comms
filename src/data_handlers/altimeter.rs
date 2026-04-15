@@ -1,58 +1,54 @@
 
 use flatbuffers;
 
-use crate::{common::BufferType, data_handlers::{DataConsumer, DataProducer}, errors::{self, AnyError}, publisher, subscriber};
+use crate::{common::BufferType, data_handlers::{DataConsumer, DataProducer}, errors::{self, AnyError}, pubsub};
 
 #[allow(unused_imports)]
 #[path = "../../gen/flatbuffers/alitmeter_generated.rs"]
 mod fb_alitmeter;
 
 
-pub struct Producer {
-    zenoh_path: String,
-    subscriber: subscriber::Subs
+pub struct Producer<T: pubsub::Subscriber> {
+    subscriber: T
 }
 
-impl Producer {
-    pub fn new(zenoh_path: String) -> Producer {
+impl<T: pubsub::Subscriber> Producer<T> {
+    pub fn new(subscriber: T) -> Producer<T> {
         Producer {
-            zenoh_path: zenoh_path.clone(),
-            subscriber: subscriber::Subs::new(zenoh_path)
+            subscriber
         }
     }
 }
 
-impl DataProducer for Producer {
+impl<T: pubsub::Subscriber> DataProducer for Producer<T> {
     /// gets altimeter data from zenoh and produces a binary representation
     /// 
     /// this produces 4 bytes
-    fn produce(&self) -> Result<BufferType, AnyError> {
-        self.subscriber.get();
-
-        let data = if let Ok(d) = fb_alitmeter::root_as_altimeter(&[0; 10]) { d } 
-            else { return Err(errors::ParseFlatbufferAltimeterError(self.zenoh_path.clone()).into())};
-
-        Ok((data.height() as f32).to_le_bytes().to_vec())
-    }
-    
-    fn has_data(&self) -> Result<bool, AnyError> {
-        Ok(true)
+    fn produce(&mut self) -> Result<Option<BufferType>, AnyError> {
+        
+        let data;
+        if let Some(r) = self.subscriber.get()? {
+            data = if let Ok(a) = fb_alitmeter::root_as_altimeter(&r) { a } 
+            else { return Err(errors::ParseFlatbufferAltimeterError("".to_string()).into()); };
+            Ok(Some((data.height() as f32).to_le_bytes().to_vec()))
+        } else {
+            Ok(None)
+        }
     }
 }
 
-pub struct Consumer<'a> {
+pub struct Consumer<T: pubsub::Publisher> {
     buffer_size: usize,
-    zenoh_path: String,
-    publisher: publisher::Pubs<'a>,
+    publisher: T,
 }
-impl<'a> Consumer<'a> {
-    pub fn new(buffer_size: usize, zenoh_path: String) -> Self {
-        return Self { buffer_size, zenoh_path: zenoh_path.clone(), publisher: publisher::Pubs::new(zenoh_path) };
+impl<T: pubsub::Publisher> Consumer<T> {
+    pub fn new(buffer_size: usize, publisher: T) -> Consumer<T> {
+        return Consumer { buffer_size, publisher };
     }
 }
-impl<'a> DataConsumer for Consumer<'a> {
-    fn consume(&self, buffer: BufferType) -> Result<(), AnyError> {
-        self.publisher.send_vec(&buffer);
+impl<T: pubsub::Publisher> DataConsumer for Consumer<T> {
+    fn consume(&mut self, buffer: BufferType) -> Result<(), AnyError> {
+        self.publisher.publish(buffer)?;
         Ok(())
     }
 

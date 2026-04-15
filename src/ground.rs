@@ -1,6 +1,6 @@
 use std::{rc::Rc, thread::sleep, time::Duration};
 
-use crate::{common::{Bandwidth, BufferType, LoraChannel, LoraCodeRate}, common_config::{ALLOW_CH_CHANGE, DOWNLINK_CH, INITIAL_CODE_RATE, LORA_PREAMBLE_LENGTH, UPLINK_CH}, data_handlers::{ConsumerManager, DataConsumer, ProducerManager, altimeter::Producer}, network::conn_mgr::RadioConnectionManager, packet::{DecodedPacket, OutgoingFrameBuilder, data_section::{DecodedDataSection, decode_data_sections}, transmission_ctrl::TSMCtrlInfo}, sx1302::{SX1302, backing::{DeviceBackingAPI, PhysicalDevice}, conf::{DEFAULT_SX1302_CONFIG, SX1302Configuration}, error::TrySendError, types::{OutgoingPacketConfig, OutgoingPacketModulation, RadioStatus, Radios}}};
+use crate::{common::{Bandwidth, BufferType, LoraChannel, LoraCodeRate}, common_config::{ALLOW_CH_CHANGE, DOWNLINK_CH, INITIAL_CODE_RATE, LORA_PREAMBLE_LENGTH, UPLINK_CH}, data_handlers::{ConsumerManager, DataConsumer, ProducerManager, altimeter::Producer}, network::conn_mgr::RadioConnectionManager, packet::{DecodedPacket, OutgoingFrameBuilder, data_section::{DecodedDataSection, decode_data_sections}, transmission_ctrl::TSMCtrlInfo}, pubsub::{Connection, tism::TISMConnection, zenoh::{ZenohConnection, ZenohPublisher}}, sx1302::{SX1302, backing::{DeviceBackingAPI, PhysicalDevice}, conf::{DEFAULT_SX1302_CONFIG, SX1302Configuration}, error::TrySendError, types::{OutgoingPacketConfig, OutgoingPacketModulation, RadioStatus, Radios}}};
 use crate::network_ids::TypeIDs;
 
 #[cfg(test)]
@@ -10,8 +10,7 @@ mod sx1302;
 mod packet;
 mod common;
 mod errors;
-mod publisher;
-mod subscriber;
+mod pubsub;
 mod data_handlers;
 mod network_ids;
 mod network;
@@ -22,13 +21,17 @@ fn main() {
     println!("CPSS - LoRa Ground Communication Node");
 
     // configure zenoh
+    let mut zenoh = ZenohConnection::new();
+    // let mut tism = TISMConnection;
     // start zenoh
 
     let mut producer_mgmt = ProducerManager::new();
     
     let mut consumer_mgmt = ConsumerManager::new();
     
-    let altimeter1 = Rc::new(data_handlers::prng_data_source::PRNG::new(20));
+    // let altimeter1 = Rc::new(data_handlers::prng_data_source::PRNG::new(20));
+
+    let altimeter1 = data_handlers::altimeter::Consumer::<ZenohPublisher>::new(5, zenoh.publish("/test/alt1".to_string())).as_rc();
     consumer_mgmt.add(TypeIDs::Altimeter1, altimeter1.clone());
 
     let mut connection_mgr = RadioConnectionManager::new_uplink(
@@ -109,7 +112,7 @@ fn main() {
         }
 
         // sleep by what ever ms for new packets to appear
-        // sleep(Duration::from_millis(360/1000));
+        sleep(Duration::from_millis(360/1000));
     }; 
 }
 

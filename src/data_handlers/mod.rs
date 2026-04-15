@@ -1,5 +1,5 @@
 use crate::{common::BufferType, errors::AnyError};
-use std::{collections::HashMap, rc::Rc};
+use std::{cell::RefCell, collections::HashMap, rc::Rc};
 
 use crate::network_ids::TypeIDs;
 
@@ -11,17 +11,25 @@ pub mod prng_data_source;
 pub trait DataProducer {
     /// produces some binary data <br>
     /// (Note: returning an empty buffer is still counted as sussefully produced. Just that the data is nothing.)
-    fn produce(&self) -> Result<BufferType, AnyError>;
-    /// weather or not this producer has data to produce
-    fn has_data(&self) -> Result<bool, AnyError>;
+    fn produce(&mut self) -> Result<Option<BufferType>, AnyError>;
+    // /// weather or not this producer has data to produce
+    // fn has_data(&self) -> Result<bool, AnyError>;
+    
+    fn as_rc(self) -> Rc<RefCell<Self>> where Self: Sized {
+        Rc::new(RefCell::new(self))
+    }
 }
 
 /// generic trait for data consumers 
 pub trait DataConsumer {
     /// consumes some binary data
-    fn consume(&self, buffer: BufferType) -> Result<(), AnyError>;
+    fn consume(&mut self, buffer: BufferType) -> Result<(), AnyError>;
     /// how much data is expected to be provided for consumtion
     fn get_size(&self) -> usize;
+
+    fn as_rc(self) -> Rc<RefCell<Self>> where Self: Sized {
+        Rc::new(RefCell::new(self))
+    }
 }
 
 /// a producer that produces all zeros for size, useful for testing and placeholders 
@@ -32,12 +40,8 @@ impl BlankProducer {
     }
 }
 impl DataProducer for BlankProducer {
-    fn produce(&self) -> Result<BufferType, AnyError> {
-        Ok(vec![0x00; self.size])
-    }
-    
-    fn has_data(&self) -> Result<bool, AnyError> {
-        Ok(true)
+    fn produce(&mut self) -> Result<Option<BufferType>, AnyError> {
+        Ok(Some(vec![0x00; self.size]))
     }
 }
 /// a consumer that consumes any data with size, useful for testing and placeholders
@@ -48,7 +52,7 @@ impl BlankConsumer {
     }
 }
 impl DataConsumer for BlankConsumer {
-    fn consume(&self, _: BufferType) -> Result<(), AnyError> {
+    fn consume(&mut self, _: BufferType) -> Result<(), AnyError> {
         Ok(())
     }
     fn get_size(&self) -> usize {
@@ -58,7 +62,7 @@ impl DataConsumer for BlankConsumer {
 
 /// manages life time and look up of all data consumers 
 pub struct ConsumerManager {
-    consumers: HashMap<TypeIDs, Rc<dyn DataConsumer>>,
+    consumers: HashMap<TypeIDs, Rc<RefCell<dyn DataConsumer>>>,
 }
 
 impl ConsumerManager {
@@ -71,22 +75,22 @@ impl ConsumerManager {
 
         #[cfg(test)] // auto init test consumers if in test mode
         {
-            this.add(TypeIDs::Test0, Rc::new(BlankConsumer::size(0)));
-            this.add(TypeIDs::Test1, Rc::new(BlankConsumer::size(3)));
-            this.add(TypeIDs::Test2, Rc::new(BlankConsumer::size(11)));
-            this.add(TypeIDs::Test3, Rc::new(BlankConsumer::size(64)));
-            this.add(TypeIDs::Test4, Rc::new(BlankConsumer::size(128)));
+            this.add(TypeIDs::Test0, BlankConsumer::size(0).as_rc());
+            this.add(TypeIDs::Test1, BlankConsumer::size(3).as_rc());
+            this.add(TypeIDs::Test2, BlankConsumer::size(11).as_rc());
+            this.add(TypeIDs::Test3, BlankConsumer::size(64).as_rc());
+            this.add(TypeIDs::Test4, BlankConsumer::size(128).as_rc());
         }
         this
     }
 
     /// adds consumer to avaliable consumers managed by this ConsumerManager
-    pub fn add(&mut self, id: TypeIDs, consumer: Rc<dyn DataConsumer>) {
+    pub fn add(&mut self, id: TypeIDs, consumer: Rc<RefCell<dyn DataConsumer>>) {
         self.consumers.insert(id, consumer);
     }
 
     /// gets consumer by id defined in id_map
-    pub fn get_consumer_by_id(&self, id: &TypeIDs) -> Option<Rc<dyn DataConsumer>> {
+    pub fn get_consumer_by_id(&self, id: &TypeIDs) -> Option<Rc<RefCell<dyn DataConsumer>>> {
         match self.consumers.get(id) {
             Some(v) => Some(v.clone()),
             None => None,
@@ -94,7 +98,7 @@ impl ConsumerManager {
     }
 
     /// gets consumer by id in form of u8 defined in id_map
-    pub fn get_consumer_by_u8(&self, id: u8) -> Option<Rc<dyn DataConsumer>> {
+    pub fn get_consumer_by_u8(&self, id: u8) -> Option<Rc<RefCell<dyn DataConsumer>>> {
         let id = match TypeIDs::from_repr(id) {
             Some(v) => v,
             None => return None,
@@ -109,7 +113,7 @@ impl ConsumerManager {
 
 /// manages life time and all look up of all data producers
 pub struct ProducerManager {
-    producers: HashMap<TypeIDs, Rc<dyn DataProducer>>,
+    producers: HashMap<TypeIDs, Rc<RefCell<dyn DataProducer>>>,
 }
 
 impl ProducerManager {
@@ -120,31 +124,31 @@ impl ProducerManager {
 
         #[cfg(test)] // auto init test consumers if in test mode
         {
-            this.producers.insert(TypeIDs::Test0, Rc::new(BlankProducer::size(0)));
-            this.producers.insert(TypeIDs::Test1, Rc::new(BlankProducer::size(3)));
-            this.producers.insert(TypeIDs::Test2, Rc::new(BlankProducer::size(11)));
-            this.producers.insert(TypeIDs::Test3, Rc::new(BlankProducer::size(64)));
-            this.producers.insert(TypeIDs::Test4, Rc::new(BlankProducer::size(128)));
+            this.producers.insert(TypeIDs::Test0, BlankProducer::size(0).as_rc());
+            this.producers.insert(TypeIDs::Test1, BlankProducer::size(3).as_rc());
+            this.producers.insert(TypeIDs::Test2, BlankProducer::size(11).as_rc());
+            this.producers.insert(TypeIDs::Test3, BlankProducer::size(64).as_rc());
+            this.producers.insert(TypeIDs::Test4, BlankProducer::size(128).as_rc());
         }
 
         this
     }
 
     /// adds producer to avaliable producers managed by this ProducerManager
-    pub fn add(&mut self, id: TypeIDs, producer: Rc<dyn DataProducer>) {
+    pub fn add(&mut self, id: TypeIDs, producer: Rc<RefCell<dyn DataProducer>>) {
         self.producers.insert(id, producer);
     }
 
 
     /// gets producer by id defined in id_map
-    pub fn get_producer_by_id(&self, id: &TypeIDs) -> Option<Rc<dyn DataProducer>> {
+    pub fn get_producer_by_id(&self, id: &TypeIDs) -> Option<Rc<RefCell<dyn DataProducer>>> {
         match self.producers.get(id) {
             Some(v) => Some(v.clone()),
             None => None,
         }
     }
     /// gets producer by id in form of u8 defined in id_map
-    pub fn get_producer_by_u8(&self, id: u8) -> Option<Rc<dyn DataProducer>> {
+    pub fn get_producer_by_u8(&self, id: u8) -> Option<Rc<RefCell<dyn DataProducer>>> {
         let id = match TypeIDs::from_repr(id) {
             Some(v) => v,
             None => return None,
@@ -157,7 +161,7 @@ impl ProducerManager {
     }
 
     /// gets an iterator over all avaliable producers
-    pub fn iter_producers(&self) -> std::collections::hash_map::Iter<'_, TypeIDs, Rc<dyn DataProducer>> {
+    pub fn iter_producers(&self) -> std::collections::hash_map::Iter<'_, TypeIDs, Rc<RefCell<dyn DataProducer>>> {
         self.producers.iter()
     }
 

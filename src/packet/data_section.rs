@@ -1,3 +1,4 @@
+use std::cell::RefCell;
 use std::fmt::Debug;
 use std::rc::Rc;
 
@@ -18,12 +19,12 @@ pub fn create_data_section(type_id: TypeIDs, mut data: Vec<u8>) -> Result<Buffer
 
 pub struct DecodedDataSection {
     id: TypeID,
-    data_consumer: Rc<dyn DataConsumer>,
+    data_consumer: Rc<RefCell<dyn DataConsumer>>,
     bytes: BufferType
 }
 impl DecodedDataSection {
     pub fn consume(self) -> Result<(), AnyError>{
-        self.data_consumer.consume(self.bytes)
+        self.data_consumer.borrow_mut().consume(self.bytes)
     }
     pub const fn size(&self) -> usize {
         self.bytes.len()
@@ -54,7 +55,7 @@ pub fn decode_data_sections<'a>(consumer_mg: &'a ConsumerManager, data: &[u8]) -
         head += 1;
 
         // get content
-        let size = data_consumer.get_size();
+        let size = data_consumer.borrow().get_size();
         let bytes = data[head..head + size].to_vec();
         res.push(DecodedDataSection {id, data_consumer, bytes});
         head += size;

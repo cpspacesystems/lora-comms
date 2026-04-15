@@ -1,8 +1,7 @@
 mod packet;
 mod common;
 mod errors;
-mod publisher;
-mod subscriber;
+mod pubsub;
 mod data_handlers;
 mod network_ids;
 mod network;

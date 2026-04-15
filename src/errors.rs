@@ -6,7 +6,7 @@ use thiserror::Error;
 use crate::network_ids::TypeID;
 use crate::network_ids::TypeIDs;
 
-pub type AnyError = Box<dyn std::error::Error>;
+pub type AnyError = Box<dyn std::error::Error + Send + Sync>;
 
 
 #[derive(Error, Debug, PartialEq)]
