@@ -1,6 +1,6 @@
 use tism::dynamic::DynamicBorrowedSharedMemory;
 
-use crate::{common::BufferType, pubsub::{Connection, Publisher, Subscriber}};
+use crate::{common::BufferType, errors, pubsub::{Connection, Publisher, Subscriber}};
 
 
 pub struct TISMConnection;
@@ -13,8 +13,8 @@ impl Connection for TISMConnection {
         }
     }
 
-    type P = TISMPublisher;
-    fn publish(&mut self, path: String) -> Self::P {
+    type P<const N: usize> = TISMPublisher<N>;
+    fn publish<const N: usize>(&mut self, path: String) -> Self::P<N> {
         TISMPublisher {
             publisher: tism::lazy::create(path)
         }
@@ -30,12 +30,16 @@ impl Subscriber for TISMSubscriber {
     }
 }
 
-pub struct TISMPublisher {
-    publisher: tism::lazy::LazyOwnedSharedMemory<BufferType, String>
+pub struct TISMPublisher<const N: usize> {
+    publisher: tism::lazy::LazyOwnedSharedMemory<[u8; N], String>
 }
-impl Publisher for TISMPublisher {
+impl<const N: usize> Publisher<N> for TISMPublisher<{ N }> {
     fn publish(&mut self, data: crate::common::BufferType) -> Result<(), crate::errors::AnyError> {
-        self.publisher.write(data)?;
+        if data.len() != N {
+            return Err(errors::InvalidData(format!("Expected {} bytes, got {}", data.len(), N)).into());
+        }
+        
+        self.publisher.write(data.try_into().unwrap())?;
         Ok(())
     }
 }

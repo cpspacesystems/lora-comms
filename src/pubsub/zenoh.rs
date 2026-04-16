@@ -24,18 +24,18 @@ impl<'a> Connection for ZenohConnection<'a> {
         }
     }
 
-    type P = ZenohPublisher<'a>;
-    fn publish(&mut self, path: String) -> Self::P {
+    type P<const N: usize> = ZenohPublisher<'a, N>;
+    fn publish<const N: usize>(&mut self, path: String) -> Self::P<N> {
         ZenohPublisher {
             publisher: self.session.declare_publisher(path).wait().unwrap(),
         }
     }
 }
 
-pub struct ZenohPublisher<'a> {
+pub struct ZenohPublisher<'a, const N: usize> {
     publisher: zenoh::pubsub::Publisher<'a>
 }
-impl Publisher for ZenohPublisher<'_> {
+impl<const N: usize> Publisher<N> for ZenohPublisher<'_, N> {
     fn publish(&mut self, data: crate::common::BufferType) -> Result<(), crate::errors::AnyError> {
         self.publisher.put(data).wait()?;
         Ok(())

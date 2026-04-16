@@ -26,33 +26,33 @@ impl<T: pubsub::Subscriber> DataProducer for Producer<T> {
     /// this produces 4 bytes
     fn produce(&mut self) -> Result<Option<BufferType>, AnyError> {
         
-        let data;
+        // let data;
         if let Some(r) = self.subscriber.get()? {
-            data = if let Ok(a) = fb_alitmeter::root_as_altimeter(&r) { a } 
-            else { return Err(errors::ParseFlatbufferAltimeterError("".to_string()).into()); };
-            Ok(Some((data.height() as f32).to_le_bytes().to_vec()))
+            // data = if let Ok(a) = fb_alitmeter::root_as_altimeter(&r) { a } 
+            // else { return Err(errors::ParseFlatbufferAltimeterError("".to_string()).into()); };
+            // Ok(Some((data.height() as f32).to_le_bytes().to_vec()))
+            Ok(Some(r))
         } else {
             Ok(None)
         }
     }
 }
 
-pub struct Consumer<T: pubsub::Publisher> {
-    buffer_size: usize,
+pub struct Consumer<const N: usize, T: pubsub::Publisher<N>> {
     publisher: T,
 }
-impl<T: pubsub::Publisher> Consumer<T> {
-    pub fn new(buffer_size: usize, publisher: T) -> Consumer<T> {
-        return Consumer { buffer_size, publisher };
+impl<const N: usize, T: pubsub::Publisher<N>> Consumer<N, T> {
+    pub fn new(publisher: T) -> Consumer<N, T> {
+        return Consumer { publisher };
     }
 }
-impl<T: pubsub::Publisher> DataConsumer for Consumer<T> {
+impl<const N: usize, T: pubsub::Publisher<N>> DataConsumer for Consumer<N, T> {
     fn consume(&mut self, buffer: BufferType) -> Result<(), AnyError> {
         self.publisher.publish(buffer)?;
         Ok(())
     }
 
     fn get_size(&self) -> usize {
-        self.buffer_size
+        N
     }
 }

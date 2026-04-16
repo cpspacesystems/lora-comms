@@ -22,7 +22,7 @@ fn main() {
 
     // configure zenoh
     let mut zenoh = ZenohConnection::new();
-    // let mut tism = TISMConnection;
+    let mut tism = TISMConnection;
     // start zenoh
 
     let mut producer_mgmt = ProducerManager::new();
@@ -31,7 +31,7 @@ fn main() {
     
     // let altimeter1 = Rc::new(data_handlers::prng_data_source::PRNG::new(20));
 
-    let altimeter1 = data_handlers::altimeter::Consumer::<ZenohPublisher>::new(5, zenoh.publish("/test/alt1".to_string())).as_rc();
+    let altimeter1 = data_handlers::altimeter::Consumer::<5, ZenohPublisher<5>>::new(zenoh.publish("/test/alt1".to_string())).as_rc();
     consumer_mgmt.add(TypeIDs::Altimeter1, altimeter1.clone());
 
     let mut connection_mgr = RadioConnectionManager::new_uplink(
