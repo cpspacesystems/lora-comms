@@ -1,24 +1,102 @@
-
 mod publisher;
 mod subscriber;
+mod lr1121wrapper;
+
+use lr1121wrapper::*;
+
+const SPI_CHANNEL: u8 = 0;
+const SPI_SPEED: u32 = 500_000;
+const SPI_DEVICE: u8 = 1;
+const GPIO_DEVICE: u8 = 0;
+const PIN_CS: u32 = 18;
+const PIN_INT: u32 = 25;
+const PIN_RST: u32 = 27;
+const PIN_BUSY: u32 = 22;
+const PIN_DIO8: u32 = 24;
+
+// Radio
+const FREQUENCY: f32 = 915.0;
+const BANDWIDTH: f32 = 125.0;
+const SPREADING_FACTOR: u8 = 7;
+const CODING_RATE: u8 = 5;
+const SYNC_WORD: u8 = 0x12;
+const TX_POWER: i8 = 10;
+const PREAMBLE_LENGTH: u16 = 8;
+const TCXO_VOLTAGE: f32 = 0.0; //1.8 or 0.0???
+
 fn main() {
-    let p = publisher::Pubs::new("test".to_string());
-    p.send_str("Hello World");
-    //let s = subscriber::Subs::new("test".to_string());
-    //s.get();
+    unsafe {
+        let ctx = init(
+            SPI_CHANNEL,
+            SPI_SPEED,
+            SPI_DEVICE,
+            GPIO_DEVICE,
+            PIN_CS,
+            PIN_INT,
+            PIN_RST,
+            PIN_BUSY,
+            PIN_DIO8,
+        );
+
+        if ctx.is_null() {
+            eprintln!("Failed to init");
+            return;
+        }
+        println!("LR1121 initialized");
+
+        // Attempt firmware update
+        println!("Attempting firmware update");
+        let flash_result = flash_firmware(ctx);
+        println!("flash_firmware() returned: {}", flash_result);
+
+        if flash_result != 0 {
+            println!("Firmware update failed with code: {}", flash_result);
+            end(ctx);
+            return;
+        }
+
+        println!("Firmware update suceeded");
+        let reset_result = reset(ctx);
+        println!("reset() returned: {}", reset_result);
+
+        println!("Starting radio");
+
+        let begin_result = begin(
+            ctx,
+            FREQUENCY,
+            BANDWIDTH,
+            SPREADING_FACTOR,
+            CODING_RATE,
+            SYNC_WORD,
+            TX_POWER,
+            PREAMBLE_LENGTH,
+            TCXO_VOLTAGE,
+        );
+
+        println!("begin() returned: {}", begin_result);
+
+        if begin_result == 0 {
+            let message = b"hello from rust";
+            let transmit_result = transmit(ctx, 0, message.as_ptr(), message.len(), 0);
+            println!("transmit() returned: {}", transmit_result);
+
+            let mut buffer = [0u8; 256];
+            let receive_result = receive(ctx, buffer.as_mut_ptr(), buffer.len(), 5000);
+            println!("receive() returned: {}", receive_result);
+
+            if receive_result > 0 {
+                let received = &buffer[..receive_result as usize];
+                if let Ok(text) = std::str::from_utf8(received) {
+                    println!("Received: {:?}", text);
+                } else {
+                    println!("Received (raw): {:?}", received);
+                }
+            }
+        } else {
+            eprintln!("Radio begin failed");
+        }
+
+        end(ctx);
+        println!("LR1121 ended.");
+    }
 }
-
-
-//lora radio code: tell zenoh when to get new data
-//goes through everything it needs to get (newest version of data) and puts it into flatbuffers
-//put flatbuffers into packets
-//send packets into lora
-//schedule packet to be sent over lora
-
-// 8 bit enum instead of string key
-
-
-
-// real struct and simulation struct, interface
-
-
