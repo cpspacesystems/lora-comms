@@ -81,10 +81,10 @@ Context* init(uint8_t spiChannel, uint32_t spiSpeed, uint8_t spiDevice,
 
 int begin(Context* ctx, float freq, float bw, uint8_t sf, uint8_t cr,
           uint8_t syncWord, int8_t power, uint16_t preambleLength, float tcxoVoltage) {
-    printf("begin called: freq=%.1f tcxo=%.1f\n", freq, tcxoVoltage);
+    printf("begin: freq=%.1f tcxo=%.1f\n", freq, tcxoVoltage);
     ctx->radio->reset();
     ctx->hal->delay(500);
-    ctx->radio->XTAL = (tcxoVoltage < 0.1f);
+    ctx->radio->XTAL = false; ///????
     int state = ctx->radio->begin(freq, bw, sf, cr, syncWord, power, preambleLength, tcxoVoltage);
     printf("Final state=%d\n", state);
     return state;
