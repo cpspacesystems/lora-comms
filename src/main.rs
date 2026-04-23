@@ -45,19 +45,19 @@ fn main() {
         println!("LR1121 initialized");
 
         // Attempt firmware update
-        println!("Attempting firmware update");
-        let flash_result = flash_firmware(ctx);
-        println!("flash_firmware() returned: {}", flash_result);
+        // println!("Attempting firmware update");
+        // let flash_result = flash_firmware(ctx);
+        // println!("flash_firmware() returned: {}", flash_result);
 
-        if flash_result != 0 {
-            println!("Firmware update failed with code: {}", flash_result);
-            end(ctx);
-            return;
-        }
+        // if flash_result != 0 {
+        //     println!("Firmware update failed with code: {}", flash_result);
+        //     end(ctx);
+        //     return;
+        // }
 
-        println!("Firmware update suceeded");
-        let reset_result = reset(ctx);
-        println!("reset() returned: {}", reset_result);
+        // println!("Firmware update suceeded");
+        // let reset_result = reset(ctx);
+        // println!("reset() returned: {}", reset_result);
 
         println!("Starting radio");
 
@@ -76,22 +76,15 @@ fn main() {
         println!("begin() returned: {}", begin_result);
 
         if begin_result == 0 {
+            
+
             let message = b"hello from rust";
             let transmit_result = transmit(ctx, 0, message.as_ptr(), message.len(), 0);
             println!("transmit() returned: {}", transmit_result);
 
-            let mut buffer = [0u8; 256];
-            let receive_result = receive(ctx, buffer.as_mut_ptr(), buffer.len(), 5000);
-            println!("receive() returned: {}", receive_result);
 
-            if receive_result > 0 {
-                let received = &buffer[..receive_result as usize];
-                if let Ok(text) = std::str::from_utf8(received) {
-                    println!("Received: {:?}", text);
-                } else {
-                    println!("Received (raw): {:?}", received);
-                }
-            }
+
+             
         } else {
             eprintln!("Radio begin failed");
         }
@@ -100,3 +93,6 @@ fn main() {
         println!("LR1121 ended.");
     }
 }
+
+
+//[ 20 3, 241, 251, 0, 0, 0, 252, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 253, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, ]
