@@ -102,21 +102,15 @@ int16_t LR11x0::writeRegMemMask32(uint32_t addr, uint32_t mask, uint32_t data) {
 }
 
 int16_t LR11x0::getVersion(uint8_t* hw, uint8_t* device, uint8_t* major, uint8_t* minor) {
-  uint8_t buff[6] = { 0 };
+  uint8_t buff[4] = { 0 };
   int16_t state = this->SPIcommand(RADIOLIB_LR11X0_CMD_GET_VERSION, false, buff, sizeof(buff));
-  
-  // Raw bytes: [Stat1] [Stat2] [Device] [HW] [Major] [Minor]
-  // Example:    0x13    0x00    0xC0    0x00  0x00    0x00
-  if(hw)      { *hw     = buff[3]; }  // Hardware is at buff[3] (0x00)
-  if(device)  { *device = buff[2]; }  // Device is at buff[2] (0xC0)
-  if(major)   { *major  = buff[4]; }  // Firmware major at buff[4]
-  if(minor)   { *minor  = buff[5]; }  // Firmware minor at buff[5]
-  
-  printf("getVersion raw: %02X %02X %02X %02X %02X %02X\n", 
-         buff[0], buff[1], buff[2], buff[3], buff[4], buff[5]);
-  printf("getVersion parsed: HW=0x%02X Device=0x%02X FW=%d.%d\n",
-         buff[3], buff[2], buff[4], buff[5]);
-  
+
+  // pass the replies
+  if(hw)      { *hw = buff[0]; }
+  if(device)  { *device = buff[1]; }
+  if(major)   { *major = buff[2]; }
+  if(minor)   { *minor = buff[3]; }
+
   return(state);
 }
 
@@ -182,17 +176,9 @@ int16_t LR11x0::setTcxoMode(uint8_t tune, uint32_t delay) {
   return(this->SPIcommand(RADIOLIB_LR11X0_CMD_SET_TCXO_MODE, true, buff, sizeof(buff)));
 }
 
-// int16_t LR11x0::reboot(bool stay) {
-//   uint8_t buff[1] = { (uint8_t)(stay*3) };
-//   return(this->mod->SPIwriteStream(RADIOLIB_LR11X0_CMD_REBOOT, buff, sizeof(buff), true, false));
-// }
 int16_t LR11x0::reboot(bool stay) {
   uint8_t buff[1] = { (uint8_t)(stay*3) };
-  RadioLibTime_t timeout = this->mod->spiConfig.timeout;
-  this->mod->spiConfig.timeout = 5000;
-  int16_t state = this->mod->SPIwriteStream(RADIOLIB_LR11X0_CMD_REBOOT, buff, sizeof(buff), true, false);
-  this->mod->spiConfig.timeout = timeout;
-  return(state);
+  return(this->mod->SPIwriteStream(RADIOLIB_LR11X0_CMD_REBOOT, buff, sizeof(buff), true, false));
 }
 
 int16_t LR11x0::getVbat(float* vbat) {
