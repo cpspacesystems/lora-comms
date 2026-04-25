@@ -1,0 +1,12 @@
+struct Vec3 {
+  x:float;
+  y:float;
+  z:float;
+}
+
+struct Quaternion {
+    w:float;
+    x:float;
+    y:float;
+    z:float;
+}

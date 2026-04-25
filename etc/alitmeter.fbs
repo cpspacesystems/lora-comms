@@ -1,0 +1,5 @@
+table Altimeter {
+    height:float;
+}
+
+root_type Altimeter;

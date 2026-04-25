@@ -1,4 +1,14 @@
 /target
 /temp
+/gen/**
+#cross complition targets
+/cross
+
+# source compiled dependencies 
+/lib/SWDR001
+/lib/sx1302_hal
+
 
 *.lock
+
+flatc
