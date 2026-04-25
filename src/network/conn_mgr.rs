@@ -117,17 +117,17 @@ impl<'a> RadioConnectionManager<'a> {
 
     pub fn get_statistics(&self) -> ConnectionStatistics {
         let recent_packets_received: usize = self.recent_packets_received.len();
-        let recent_packets_lost: usize = self.recent_packets_losts.iter()
-            .map(|v| *v.data() as usize)
+        let recent_packets_lost: f64 = self.recent_packets_losts.iter()
+            .map(|v| *v.data() as f64)
             .sum()
         ;
         let recent_data_received: usize = self.recent_packets_received.iter()
-            .map(|v| *v.data() as usize)
+            .map(|v| v.data())
             .sum()
         ;
 
         ConnectionStatistics { 
-            recent_packet_lost_rate: (recent_packets_lost as f64 / recent_packets_received as f64) as f32, 
+            recent_packet_lost_rate: (recent_packets_lost / recent_packets_received as f64) as f32, 
             recent_data_rate: recent_data_received.try_into().unwrap_or(u64::MAX) / PACKET_LOST_CALC_INTERVAL.as_secs(), 
             .. self.stats 
         }
@@ -160,7 +160,8 @@ impl<'a> RadioConnectionManager<'a> {
 
     fn construct_frame(&mut self) -> Vec<BufferType> {
         self.frame_builder.gather_all();
-        self.frame_builder.build(self.last_tsm)
+        let packets = self.frame_builder.build(&mut self.last_tsm);
+        packets
     }
 
     pub fn update_transmit_finish(&mut self) {
@@ -172,9 +173,10 @@ impl<'a> RadioConnectionManager<'a> {
         // sort decoded packets by frame number 
         DecodedPacket::sort_packets(&mut received_packets, self.last_tsm);
         for packet in received_packets {
+            println!("GOT: {}, {}", packet.tsm_ctrl.get_packet_number(), packet.tsm_ctrl.is_eot());
             let mut data_size = 0;
             let packets_lost = packet.tsm_ctrl.num_packets_from_last(self.last_tsm);
-            
+
             self.last_tsm = packet.tsm_ctrl;
             for ds in packet.data_sections {
                 data_size += ds.size();
@@ -193,23 +195,25 @@ impl<'a> RadioConnectionManager<'a> {
         let now = time::Instant::now();
         // receive and process packets
         if received_packets.is_empty() {
-            if self.last_packet_received_time.saturating_duration_since(now) >  common_config::CONNECTION_LOST_AFTER_PERIOD {
+            if now.saturating_duration_since(self.last_packet_received_time) >  common_config::CONNECTION_LOST_AFTER_PERIOD {
                 self.current_status = RadioConnectionStatus::LOST;
             }
         } else {
             self.last_packet_received_time = now;
             self.receive_and_consume_packets(received_packets, now);
+
+            // peer has ended transmission, we can begin transmitting our data
+            if self.last_tsm.is_eot() {
+                println!("transmit");
+                self.current_status = RadioConnectionStatus::TRANSMITTING;
+                return self.construct_frame();
+            }
         }
         
         // if uplink not enabled, then downlink will just transmit and uplink will always listen
         if !self.enable_uplink && self.is_downlink {
-            return self.construct_frame(); 
-        }
-
-        // peer has ended transmission, we can begin transmitting our data
-        if self.last_tsm.is_eot() {
             self.current_status = RadioConnectionStatus::TRANSMITTING;
-            return self.construct_frame();
+            return self.construct_frame(); 
         }
 
         // we might have missed an EOT.

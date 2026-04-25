@@ -32,10 +32,15 @@ fn main() {
     let mut consumer_mgmt = ConsumerManager::new();
     
     let altimeter1 = data_handlers::prng_data_source::PRNG::new(100).as_rc();
-
+    let altimeter2 = data_handlers::prng_data_source::PRNG::new(100).as_rc();
+    let altimeter3 = data_handlers::prng_data_source::PRNG::new(100).as_rc();
+    let cmd1 = data_handlers::prng_data_source::PRNG::new(10).as_rc();
     // let altimeter1 = data_handlers::altimeter::Consumer::<5, ZenohPublisher<5>>::new(zenoh.publish("/test/alt1".to_string())).as_rc();
     // producer_mgmt.add(TypeIDs::Altimeter1, altimeter1.clone());
     consumer_mgmt.add(TypeIDs::Altimeter1, altimeter1.clone());
+    consumer_mgmt.add(TypeIDs::Altimeter2, altimeter2.clone());
+    consumer_mgmt.add(TypeIDs::Altimeter3, altimeter3.clone());
+    producer_mgmt.add(TypeIDs::SignalDeployParachute, cmd1.clone());
 
     let mut connection_mgr = RadioConnectionManager::new_uplink(
         common_config::RADIO_ENABLE_UPLINK,
@@ -70,6 +75,7 @@ fn main() {
         // fetch any new packets 
         match radio.try_receive() {
             Ok(packets) => {
+                // println!("IN  {} packets.", packets.len());
                 decoded_packets.reserve(packets.len());
                 // if have packets, decode them 
                 for p in packets {
@@ -83,6 +89,8 @@ fn main() {
         };
 
         let outbound_packets = connection_mgr.update(radio.is_currently_receiving().unwrap_or(true), decoded_packets);
+
+        // dbg!(connection_mgr.get_statistics());
 
         if !outbound_packets.is_empty() {
             let pkt_config = packet::OutgoingPacketConfig {
@@ -98,6 +106,7 @@ fn main() {
                 timing: packet::OutgoingPacketTiming::Immediate,
                 rf_power: 27, // max rf power
             };
+            println!("OUT {} packets.", outbound_packets.len());            
             
             for packet in outbound_packets {
                 loop {

@@ -60,6 +60,7 @@ impl<'a> OutgoingFrameBuilder<'a> {
 
     #[inline]
     fn create_final_packet(tsm: &TSMCtrlInfo, packet: &mut BufferType) {
+        println!("SEND: {}", tsm.get_packet_number());
         let data_sections = std::mem::take(packet); // gets an owned view of packet, which should only contain data sections right now
         let _ = std::mem::replace(packet, [
             tsm.to_wire((Self::PACKET_FIXED_SIZE + data_sections.len()) as u8), 
@@ -70,7 +71,7 @@ impl<'a> OutgoingFrameBuilder<'a> {
     /// builds new frame (into mutiple packets if needed), consumes all data in internal buffer
     ///
     /// this builder can be reused for a new frame 
-    pub fn build(&mut self, mut last_tsm: TSMCtrlInfo) -> Vec<BufferType> {        
+    pub fn build(&mut self, last_tsm: &mut TSMCtrlInfo) -> Vec<BufferType> {        
         let mut packets: Vec<BufferType> = Vec::new();
         'outer: while let Some(mut ds) = self.data_sections.pop() {
             for packet in &mut packets {
@@ -229,7 +230,7 @@ mod tests {
         let producers = ProducerManager::new();
         let mut builder =  OutgoingFrameBuilder::new(&producers);
 
-        assert_eq!(builder.build(TSMCtrlInfo::default()), &[TSMCtrlInfo::default().advance(true).to_wire(2)]);
+        assert_eq!(builder.build(&mut TSMCtrlInfo::default()), &[TSMCtrlInfo::default().advance(true).to_wire(2)]);
 
         assert!(matches!(builder.gather_by_id(TypeIDs::from_repr(255).unwrap()), Err(e) if e.is::<errors::GatherUnknownTypeError>()));
 
@@ -238,7 +239,7 @@ mod tests {
                 .gather_by_id(TypeIDs::Test1).unwrap()
                 .gather_by_id(TypeIDs::from_repr(252).unwrap()).unwrap()
                 .gather_by_id(TypeIDs::Test3).unwrap()
-                .build(TSMCtrlInfo::default()),
+                .build(&mut TSMCtrlInfo::default()),
             [[TSMCtrlInfo::new(1_U7, true).to_wire(2+1+3+1+11+1+64),
                 vec![0xFD], vec![0x00; 64], vec![0xFC], vec![0x00; 11], vec![0xFB], vec![0x00; 3]].concat()].to_vec() 
         );
