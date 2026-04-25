@@ -29,7 +29,7 @@ pub enum TypeIDs {
     GPS1 = 30,
 
     FullPrepreppedTelemteryPacket = 101,
-
+    RawData = 103,
     // produced by ground/mc -- [200, 250)
     SignalAbort = 201,
     SignalLaunch = 202,

@@ -53,9 +53,6 @@ pub enum TrySendError {
     PacketLoraSFUnsupported(u32),
     #[error("The provided baudrate {0} is not within the valid range of [500,250_000] bauds!")]
     PacketFSKInvalidBaudrate(u32),
-
-    #[error("Radio1RxTx is currently unable to send any more packets.")]
-    RadioBusy,
     
     #[error("Encountered an error while trying to send packet from the SX1302!")]
     FailedToTrySend,

@@ -44,7 +44,7 @@ impl PartialEq for DecodedDataSection {
 
 
 /// decode data sections into respective types and binary data of content
-pub fn decode_data_sections<'a>(consumer_mg: &'a ConsumerManager, data: &[u8]) -> Result<Vec<DecodedDataSection>, errors::DecodeUnknownTypeError> {
+pub fn decode_data_sections<'a>(consumer_mg: &'a ConsumerManager, data: &[u8]) -> Result<Vec<DecodedDataSection>, errors::AnyError> {
     let mut res: Vec<DecodedDataSection> = Vec::new();
     let mut head = 0; 
     while head < data.len() {
@@ -56,6 +56,9 @@ pub fn decode_data_sections<'a>(consumer_mg: &'a ConsumerManager, data: &[u8]) -
 
         // get content
         let size = data_consumer.borrow().get_size();
+        if head + size > data.len() {
+            return Err(errors::InvalidData(format!("Expected data of size {}, but go data with size of {}!", head + size, size)).into());
+        }
         let bytes = data[head..head + size].to_vec();
         res.push(DecodedDataSection {id, data_consumer, bytes});
         head += size;
@@ -80,7 +83,7 @@ use crate::network_ids::TypeIDs;
     #[test]
     fn test_decode_data_sections() {
         let consumer_mg = ConsumerManager::new();
-        assert!(matches!(decode_data_sections(&consumer_mg, vec![0xFF, 0x01].as_slice()), Err(errors::DecodeUnknownTypeError(_))));
+        assert!(decode_data_sections(&consumer_mg, vec![0xFF, 0x01].as_slice()).is_err());
 
         let d1 = create_data_section(TypeIDs::Test1, b"abc".to_vec()).unwrap();
         assert_eq!(

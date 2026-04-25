@@ -5,6 +5,7 @@ use crate::network_ids::TypeIDs;
 
 pub mod altimeter;
 pub mod prng_data_source;
+pub mod raw_pubsub;
 // pub mod r_qos;
 
 /// generic trait for data producers

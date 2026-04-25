@@ -150,6 +150,71 @@ impl ReceivedPacket {
     } 
 }
 
+/// Outgoing/Transmit Packet Modulation configuration 
+#[derive(Debug, Clone, Copy, PartialEq)]
+pub enum OutgoingPacketModulation {
+    /// continous wave
+    CW {
+        /// frequency offset from Radio Tx frequency
+        freq_offset_hz: i8
+    },
+    /// frequency shift keying
+    FSK {
+        /// frequency deviation in khz 
+        freq_deviation_khz: u8,
+        /// baudrate, valid between [500, 250000] bauds
+        baudrate: u32,
+        /// length of preamble, at least 3, normally 5
+        preamble_length: u16,
+        /// fixed length packet
+        fixed_length: bool,
+    },
+    /// LoRa spread spectrum
+    LoRa {
+        /// LoRa modulation/transmit channel bandwidth
+        bandwidth: Bandwidth,
+        /// LoRa spread factor, valid between SF of [5,12]
+        spread_factor: SpreadFactor,
+        /// Error correcting level to use for the packet
+        coderate: LoraCodeRate,
+        /// Is implicit header enabled for this transmission
+        no_header: bool,
+        /// Invert signal polarity, for orthogonal downlinks (LoRa only) 
+        invert_polarity: bool,
+        /// length of preamble, at least 6, normally 8
+        preamble_length: u16,
+    },
+}
+
+/// When is the packet sent
+#[derive(Debug, Clone, Copy, PartialEq)]
+pub enum OutgoingPacketTiming {
+    /// send packet as soon as possible
+    Immediate,
+    /// send packet when timestamp is reached
+    /// 
+    /// timestamp or delay in microseconds for to trigger TX start
+    Timestamped(u32),
+    /// send packet on next GPS/PPS pluse
+    GPSTriggered,
+}
+
+/// configuration of an packet to be trasmitted
+#[derive(Debug, Clone, Copy, PartialEq)]
+pub struct OutgoingPacketConfig {
+    /// The center frequency that the packet will be transmitted at. 
+    /// ex 907300000 for packet on 907.3 khz
+    pub freq_hz: u32,
+    /// the modulation mode used for the packet
+    pub modulation: OutgoingPacketModulation,
+    /// when the packet is going to be sent
+    pub timing: OutgoingPacketTiming,
+    /// TX power, in dBm.
+    /// Must be match the rf_power of one of the TxGains in Tx Gains configuration
+    pub rf_power: i8,
+}
+
+
 #[cfg(test)]
 use bitint::bitint_literals;
 #[cfg(test)]

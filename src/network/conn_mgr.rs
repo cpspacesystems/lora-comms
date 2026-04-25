@@ -59,6 +59,7 @@ pub enum RadioConnectionStatus {
 
 pub struct RadioConnectionManager<'a> {
     // configuration
+    enable_uplink: bool,
     is_downlink: bool,
 
     consumer_mgmt: &'a ConsumerManager,
@@ -78,23 +79,24 @@ pub struct RadioConnectionManager<'a> {
 }
 
 impl<'a> RadioConnectionManager<'a> {
-    pub fn new_uplink(
+    pub fn new_uplink(enable_uplink: bool,
         consumer_mgmt: &'a ConsumerManager, producer_mgmt: &'a ProducerManager,
     ) -> RadioConnectionManager<'a> {
-        Self::new(false, consumer_mgmt, producer_mgmt)
+        Self::new(false, enable_uplink, consumer_mgmt, producer_mgmt)
     }
 
-    pub fn new_downlink(
+    pub fn new_downlink(enable_uplink: bool,
         consumer_mgmt: &'a ConsumerManager, producer_mgmt: &'a ProducerManager,
     ) -> RadioConnectionManager<'a> {
-        Self::new(true, consumer_mgmt, producer_mgmt)
+        Self::new(true, enable_uplink, consumer_mgmt, producer_mgmt)
     }
 
-    pub fn new(is_downlink: bool,
+    pub fn new(is_downlink: bool, enable_uplink: bool,
         consumer_mgmt: &'a ConsumerManager, producer_mgmt: &'a ProducerManager,
     ) -> RadioConnectionManager<'a> {
 
-        RadioConnectionManager { 
+        RadioConnectionManager {
+            enable_uplink, 
             is_downlink, 
 
             consumer_mgmt, 
@@ -189,7 +191,7 @@ impl<'a> RadioConnectionManager<'a> {
     // expects to not be called before all outbound packets have been sent
     pub fn update(&mut self, busy_receive: bool, received_packets: Vec<DecodedPacket>) -> Vec<BufferType> {
         let now = time::Instant::now();
-
+        // receive and process packets
         if received_packets.is_empty() {
             if self.last_packet_received_time.saturating_duration_since(now) >  common_config::CONNECTION_LOST_AFTER_PERIOD {
                 self.current_status = RadioConnectionStatus::LOST;
@@ -199,6 +201,10 @@ impl<'a> RadioConnectionManager<'a> {
             self.receive_and_consume_packets(received_packets, now);
         }
         
+        // if uplink not enabled, then downlink will just transmit and uplink will always listen
+        if !self.enable_uplink && self.is_downlink {
+            return self.construct_frame(); 
+        }
 
         // peer has ended transmission, we can begin transmitting our data
         if self.last_tsm.is_eot() {

@@ -1,6 +1,6 @@
 use std::{cell::UnsafeCell, error::Error, ffi, fmt, mem::{ManuallyDrop, MaybeUninit}, ops::DerefMut, sync::LazyLock, time};
 
-use crate::{common::assert_np, packet::{PacketMetadata, ReceivedPacket}, sx1302::{self, Payload, backing::{DeviceBackingAPI, PhysicalDevice}, bindings_loragw_hal::{self, LGW_HAL_ERROR, LGW_HAL_SUCCESS, lgw_com_type_t, lgw_conf_board_s, lgw_conf_chan_lbt_s, lgw_conf_demod_s, lgw_conf_ftime_s, lgw_conf_rxif_s, lgw_conf_rxrf_s, lgw_ftime_mode_t, lgw_pkt_rx_s, lgw_pkt_tx_s, lgw_radio_type_t, lgw_rssi_tcomp_s, lgw_time_on_air, lgw_tx_gain_lut_s, lgw_tx_gain_s}, conf::{self}, error::{ConfigureError, FailedToGetStatus, FailedToGetTemp, FailedToStart, FailedToStop, FailedToTryReceive, TrySendError}}}; 
+use crate::{common::{BufferType, assert_np}, errors::AnyError, network::{self, NetworkRadio}, packet::{OutgoingPacketConfig, OutgoingPacketModulation, OutgoingPacketTiming, PacketMetadata, ReceivedPacket}, sx1302::{self, backing::{DeviceBackingAPI, PhysicalDevice}, bindings_loragw_hal::{self, LGW_HAL_ERROR, LGW_HAL_SUCCESS, lgw_com_type_t, lgw_conf_board_s, lgw_conf_chan_lbt_s, lgw_conf_demod_s, lgw_conf_ftime_s, lgw_conf_rxif_s, lgw_conf_rxrf_s, lgw_ftime_mode_t, lgw_pkt_rx_s, lgw_pkt_tx_s, lgw_radio_type_t, lgw_rssi_tcomp_s, lgw_time_on_air, lgw_tx_gain_lut_s, lgw_tx_gain_s}, conf::{self}, error::{ConfigureError, FailedToGetStatus, FailedToGetTemp, FailedToStart, FailedToStop, FailedToTryReceive, TrySendError}}}; 
 use crate::sx1302::types::*;
 use crate::common_config::MAX_PAYLOAD_SIZE;
 
@@ -24,18 +24,11 @@ impl<'a> Default for SX1302<'a, PhysicalDevice> {
         Self::new(conf::DEFAULT_SX1302_CONFIG, unsafe {&mut *&raw mut *b})
     }
 }
-impl<'a, B: DeviceBackingAPI> SX1302<'a, B> {
-    /// creates a new SX1302 radio with configuration
-    pub fn new(config: conf::SX1302Configuration, backing_api: &'a mut B) -> Self {
-        SX1302::<B> { 
-            driver_api: backing_api,
-            config,
-            valid_rf_power_levels: Vec::new()
-        }
-    }
-
+impl<'a, B: DeviceBackingAPI> NetworkRadio for SX1302<'a, B> {
+    
+    type ConfigureError = ConfigureError;
     /// configures the SX1302 radio
-    pub fn configure(&mut self) -> Result<(), ConfigureError> {
+    fn configure(&mut self) -> Result<(), Self::ConfigureError> {
         let config = &self.config;
 
         // board configuration
@@ -169,10 +162,10 @@ impl<'a, B: DeviceBackingAPI> SX1302<'a, B> {
     }
 
     /// Start the SX1302 radio
-    pub fn start(&mut self) -> Result<(), FailedToStart> {
+    fn start(&mut self) -> Result<(), AnyError> {
         unsafe {
             if LGW_HAL_SUCCESS != self.driver_api.lgw_start() {
-                return Err(FailedToStart);
+                return Err(FailedToStart.into());
             }
         }
         println!("INFO SX1302: Gateway susscessfully started operation.");
@@ -180,18 +173,19 @@ impl<'a, B: DeviceBackingAPI> SX1302<'a, B> {
     }
 
     /// Stop the SX1302 radio
-    pub fn stop(&mut self) -> Result<(), FailedToStop> {
+    fn stop(&mut self) -> Result<(), AnyError> {
         unsafe  {
             if LGW_HAL_SUCCESS != self.driver_api.lgw_stop() {
-                return Err(FailedToStop) ;
+                return Err(FailedToStop.into()) ;
             }
         }
         println!("INFO SX1302: Gateway susscessfully stopped operation.");
         Ok(())
     }
 
+    type ReceiveError = FailedToTryReceive;
     /// try receiving packets from sx1302, only valid packets are returned
-    pub fn try_receive(&mut self) -> Result<Vec<ReceivedPacket>, FailedToTryReceive> {
+    fn try_receive(&mut self) -> Result<Vec<ReceivedPacket>, Self::ReceiveError> {
         // SAFETY: lgw_pkt_rx_s can be zero initialized 
         let mut packets: [lgw_pkt_rx_s; sx1302::MAX_RAW_PAYLOAD_HOLDER_SIZE as usize] = unsafe { MaybeUninit::zeroed().assume_init() }; 
         let count = match unsafe { self.driver_api.lgw_receive(sx1302::MAX_RAW_PAYLOAD_HOLDER_SIZE as u8, &mut packets as *mut lgw_pkt_rx_s) } {
@@ -209,7 +203,7 @@ impl<'a, B: DeviceBackingAPI> SX1302<'a, B> {
                 continue;
             } 
 
-            let mut data = Payload::with_capacity(packet.size as usize); 
+            let mut data = BufferType::with_capacity(packet.size as usize); 
             data.extend_from_slice(&packet.payload[0..packet.size as usize]);
             raw_data.push(ReceivedPacket {
                 data,
@@ -225,16 +219,17 @@ impl<'a, B: DeviceBackingAPI> SX1302<'a, B> {
         Ok(raw_data)
     }
 
+    type CustomSendError = TrySendError;
     /// try sending a packet from sx1302
     /// returns air time
-    pub fn try_send(&mut self, packet_config: OutgoingPacketConfig, payload: &Payload) -> Result<time::Duration, TrySendError> {
+    fn try_send(&mut self, packet_config: OutgoingPacketConfig, payload: &BufferType) -> Result<time::Duration, network::SendError<TrySendError>> {
         if payload.len() > MAX_PAYLOAD_SIZE {
-            return Err(TrySendError::PayloadTooLarge(payload.len(), MAX_PAYLOAD_SIZE));
+            return Err(TrySendError::PayloadTooLarge(payload.len(), MAX_PAYLOAD_SIZE).into());
         }
 
         // ensure that the Tx Radio is not occupied
         if !self.get_radio_status(Radios::Radio0RxTx).is_ok_and(|s| s == RadioStatus::Avaliable) {
-            return Err(TrySendError::RadioBusy);
+            return Err(network::SendError::RadioBusy);
         }
 
         // verify packet configuration 
@@ -253,7 +248,7 @@ impl<'a, B: DeviceBackingAPI> SX1302<'a, B> {
         packet.rf_power = if self.valid_rf_power_levels.binary_search(&packet_config.rf_power).is_ok() {
             packet_config.rf_power
         } else {
-            return Err(TrySendError::PacketRfPowerUndefined(packet_config.rf_power));
+            return Err(TrySendError::PacketRfPowerUndefined(packet_config.rf_power).into());
         };
         packet.modulation = match packet_config.modulation {
             OutgoingPacketModulation::CW { freq_offset_hz } => {
@@ -264,21 +259,21 @@ impl<'a, B: DeviceBackingAPI> SX1302<'a, B> {
             OutgoingPacketModulation::FSK { freq_deviation_khz, baudrate, preamble_length, fixed_length: fixed_langth } => {
                 packet.f_dev = freq_deviation_khz;
                 packet.datarate = if 500 <= baudrate && baudrate <= 250000 { baudrate }
-                    else { return Err(TrySendError::PacketFSKInvalidBaudrate(baudrate)); };
+                    else { return Err(TrySendError::PacketFSKInvalidBaudrate(baudrate).into()); };
                 packet.preamble = if 3 <= preamble_length { preamble_length } 
-                    else { return Err(TrySendError::PacketPreambleLengthTooShort(preamble_length, 3)); };
+                    else { return Err(TrySendError::PacketPreambleLengthTooShort(preamble_length, 3).into()); };
                 packet.no_header = fixed_langth;
 
                 bindings_loragw_hal::MOD_FSK
             },
             OutgoingPacketModulation::LoRa { bandwidth, spread_factor, coderate, no_header, invert_polarity, preamble_length } => {
-                packet.bandwidth = bandwidth.into();
+                packet.bandwidth = sx1302_from_bandwidth(bandwidth);
                 packet.datarate = spread_factor.into();
-                packet.coderate = coderate.into();
+                packet.coderate = sx1302_from_coderate(coderate);
                 packet.no_header = no_header;
                 packet.invert_pol = invert_polarity;
                 packet.preamble = if 6 <= preamble_length { preamble_length } 
-                    else { return Err(TrySendError::PacketPreambleLengthTooShort(preamble_length, 6)); };
+                    else { return Err(TrySendError::PacketPreambleLengthTooShort(preamble_length, 6).into()); };
                 
                 bindings_loragw_hal::MOD_LORA
             },
@@ -292,11 +287,35 @@ impl<'a, B: DeviceBackingAPI> SX1302<'a, B> {
 
         if LGW_HAL_SUCCESS != unsafe { self.driver_api.lgw_send(&mut packet as *mut lgw_pkt_tx_s) } {
             println!("WARN SX1302: Failed to send packet, with content: {:?}", packet);
-            return Err(TrySendError::FailedToTrySend);
+            return Err(TrySendError::FailedToTrySend.into());
         };
 
         let toa = unsafe { lgw_time_on_air(&mut packet as *mut lgw_pkt_tx_s) };
         Ok(time::Duration::from_millis(toa.into()))
+    }
+
+    fn is_currently_receiving(&mut self) -> Result<bool, AnyError> {
+        match self.get_radio_status(Radios::Radio1RxOnly) {
+            Ok(RadioStatus::Busy) => Ok(true),
+            Err(e) => { 
+                println!("Encountered error while trying to get radio status: {}", e); 
+                Err(e.into()) 
+            },
+            _ => Ok(false)
+        }
+    }
+
+
+}
+
+impl<'a, B: DeviceBackingAPI> SX1302<'a, B> {
+    /// creates a new SX1302 radio with configuration
+    pub fn new(config: conf::SX1302Configuration, backing_api: &'a mut B) -> Self {
+        SX1302::<B> { 
+            driver_api: backing_api,
+            config,
+            valid_rf_power_levels: Vec::new()
+        }
     }
 
     /// gets the current status of a radio on the SX1302
@@ -337,14 +356,6 @@ impl<'a, B: DeviceBackingAPI> SX1302<'a, B> {
         }
     }
 
-    pub fn is_currently_receiving(&mut self) -> bool {
-        match self.get_radio_status(Radios::Radio1RxOnly) {
-            Ok(RadioStatus::Busy) => true,
-            Err(e) => { println!("Encountered error while trying to get radio status: {}", e); false },
-            _ => false
-        }
-    }
-
     /// Get the SX1302 temperature in degrees celcius
     pub fn get_temperature_celcius(&mut self, ) -> Result<f32, FailedToGetTemp> {
         let mut temp: f32 = 0.0;
@@ -363,7 +374,7 @@ mod tests {
 
     use bitvec::vec;
 
-    use crate::{common::{Bandwidth, LoraCodeRate, SpreadFactor}, sx1302::{Payload, SX1302, backing::unit_test_backing::UnitTestDevice, bindings_loragw_hal::{self, BW_125KHZ, CR_LORA_4_5, DR_LORA_SF7, IMMEDIATE, LGW_HAL_ERROR, LGW_HAL_SUCCESS, MOD_LORA, RX_OFF, RX_ON, RX_STATUS, RX_STATUS_UNKNOWN, RX_SUSPENDED, STAT_CRC_BAD, STAT_CRC_OK, TX_EMITTING, TX_FREE, TX_OFF, TX_SCHEDULED, TX_STATUS, TX_STATUS_UNKNOWN, lgw_conf_board_s, lgw_conf_demod_s, lgw_conf_ftime_s, lgw_conf_rxrf_s, lgw_pkt_rx_s, lgw_pkt_tx_s, lgw_rssi_tcomp_s}, conf, error::{ConfigureError, FailedToGetStatus, FailedToGetTemp, FailedToStart, FailedToStop, FailedToTryReceive, TrySendError}, testing::new_FunctionData, types::{OutgoingPacketConfig, OutgoingPacketModulation, OutgoingPacketTiming, RadioStatus, Radios}}};
+    use crate::{common::{Bandwidth, BufferType, LoraCodeRate, SpreadFactor}, network::{NetworkRadio, SendError}, packet::{OutgoingPacketConfig, OutgoingPacketModulation, OutgoingPacketTiming}, sx1302::{SX1302, backing::unit_test_backing::UnitTestDevice, bindings_loragw_hal::{self, BW_125KHZ, CR_LORA_4_5, DR_LORA_SF7, IMMEDIATE, LGW_HAL_ERROR, LGW_HAL_SUCCESS, MOD_LORA, RX_OFF, RX_ON, RX_STATUS, RX_STATUS_UNKNOWN, RX_SUSPENDED, STAT_CRC_BAD, STAT_CRC_OK, TX_EMITTING, TX_FREE, TX_OFF, TX_SCHEDULED, TX_STATUS, TX_STATUS_UNKNOWN, lgw_conf_board_s, lgw_conf_demod_s, lgw_conf_ftime_s, lgw_conf_rxrf_s, lgw_pkt_rx_s, lgw_pkt_tx_s, lgw_rssi_tcomp_s}, conf, error::{ConfigureError, FailedToGetStatus, FailedToGetTemp, FailedToStart, FailedToStop, FailedToTryReceive, TrySendError}, testing::new_FunctionData, types::{RadioStatus, Radios}}};
     use crate::sx1302::types::*;
     use crate::common_config::MAX_PAYLOAD_SIZE;
 
@@ -603,11 +614,11 @@ mod tests {
         h1.lgw_start_harness.expect_from_now(1, new_FunctionData! {
             ret w LGW_HAL_ERROR,
         });
-        assert_eq!(SX1302::new(conf::DEFAULT_SX1302_CONFIG, &mut h1).start(), Err(FailedToStart));
+        assert!(SX1302::new(conf::DEFAULT_SX1302_CONFIG, &mut h1).start().is_err());
         h1.lgw_start_harness.expect_from_now(1, new_FunctionData! {
             ret w LGW_HAL_SUCCESS,
         });
-        assert_eq!(SX1302::new(conf::DEFAULT_SX1302_CONFIG, &mut h1).start(), Ok(()));
+        assert!(SX1302::new(conf::DEFAULT_SX1302_CONFIG, &mut h1).start().is_ok());
     }
 
     #[test]
@@ -617,11 +628,11 @@ mod tests {
         h1.lgw_stop_harness.expect_from_now(1, new_FunctionData! {
             ret w LGW_HAL_ERROR,
         });
-        assert_eq!(SX1302::new(conf::DEFAULT_SX1302_CONFIG, &mut h1).stop(), Err(FailedToStop));
+        assert!(SX1302::new(conf::DEFAULT_SX1302_CONFIG, &mut h1).stop().is_err());
         h1.lgw_stop_harness.expect_from_now(1, new_FunctionData! {
             ret w LGW_HAL_SUCCESS,
         });
-        assert_eq!(SX1302::new(conf::DEFAULT_SX1302_CONFIG, &mut h1).stop(), Ok(()));
+        assert!(SX1302::new(conf::DEFAULT_SX1302_CONFIG, &mut h1).stop().is_ok());
     }
 
     #[test]
@@ -854,8 +865,8 @@ mod tests {
         });
         let mut s = SX1302::new(conf::DEFAULT_SX1302_CONFIG, &mut h);
         s.configure().unwrap();
-        let r = s.try_send(c1, &Payload::new());
-        assert!(matches!(r, Err(TrySendError::FailedToTrySend)));
+        let r = s.try_send(c1, &BufferType::new());
+        assert!(matches!(r, Err(SendError::Other(TrySendError::FailedToTrySend))));
         
         // check radio status handling
         h.lgw_status_harness.set_typical_output(new_FunctionData! {
@@ -864,8 +875,8 @@ mod tests {
         });
         let mut s = SX1302::new(conf::DEFAULT_SX1302_CONFIG, &mut h);
         s.configure().unwrap();
-        let r = s.try_send(c1, &Payload::new());
-        assert!(matches!(r, Err(TrySendError::RadioBusy)));
+        let r = s.try_send(c1, &BufferType::new());
+        assert!(matches!(r, Err(SendError::RadioBusy)));
 
         // normal op handling
         h.lgw_status_harness.set_typical_output(new_FunctionData! {
@@ -886,7 +897,7 @@ mod tests {
         });
         let mut s = SX1302::new(conf::DEFAULT_SX1302_CONFIG, &mut h);
         s.configure().unwrap();
-        let p1 = Payload::from(&[69; MAX_PAYLOAD_SIZE]);
+        let p1 = BufferType::from(&[69; MAX_PAYLOAD_SIZE]);
         let r = s.try_send(c1, &p1);
         assert!(r.is_ok());
     }
