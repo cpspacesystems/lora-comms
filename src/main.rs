@@ -12,6 +12,8 @@ mod data_handlers;
 mod network_ids;
 mod network;
 mod common_config;
+mod lr1121;
+mod lr1121wrapper;
 
 //lora radio code: tell zenoh when to get new data
 //goes through everything it needs to get (newest version of data) and puts it into flatbuffers
