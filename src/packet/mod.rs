@@ -27,15 +27,20 @@ impl<'a> OutgoingFrameBuilder<'a> {
     /// gather data section from producer with id
     /// <br> calling this function 2 times will create 2 data sections from the same producer
     pub fn gather_by_id(&mut self, id: TypeIDs) -> Result<&mut Self, AnyError> {
-        let producer = if let Some(p) = self.producer_mg.get_producer_by_id(&id) { p }
+        let rc = if let Some(p) = self.producer_mg.get_producer_by_id(&id) { p }
         else {
             return Err(errors::GatherUnknownTypeError(id as u8).into());
         };
 
-        let raw = if let Some(r) = producer.borrow_mut().produce()? { r } else {
+        let mut producer = rc.borrow_mut();
+        let raw = if let Some(r) = producer.produce()? { r } else {
             return Ok(self);
         };
-        let data = create_data_section(id, raw)?; 
+        if raw.len() != producer.get_size() {
+            return Err(errors::GatherUnexpectedSize(producer.get_size(), raw.len()).into());
+        }
+
+        let data = create_data_section(id.into(), raw)?; 
         self.data_sections.push(data);
         Ok(self)
     }
@@ -43,15 +48,23 @@ impl<'a> OutgoingFrameBuilder<'a> {
     /// gather data sections from all avaliable producers
     /// <br> This function will silently skip over any producers that errored while trying to produce
     pub fn gather_all(&mut self) {
-        for (id, p) in self.producer_mg.iter_producers() {
-            let data = match p.borrow_mut().produce() {
+        for (id, rc) in self.producer_mg.iter_producers() {
+            let mut p = rc.borrow_mut();
+            let data = match p.produce() {
                 Ok(Some(v)) => v,
-                _ => continue,
+                Ok(None) => continue,
+                Err(e) => { 
+                    println!("Encountered errors while producing id {}: {}", *id as u8, e);
+                    continue;
+                } 
             };
 
             let ds = match create_data_section(*id, data) {
                 Ok(v) => v,
-                Err(_) => continue,
+                Err(e) => { 
+                    println!("Encountered errors while producing id {}: {}", *id as u8, e);
+                    continue;
+                }
             }; 
 
             self.data_sections.push(ds);
@@ -232,12 +245,12 @@ mod tests {
 
         assert_eq!(builder.build(&mut TSMCtrlInfo::default()), &[TSMCtrlInfo::default().advance(true).to_wire(2)]);
 
-        assert!(matches!(builder.gather_by_id(TypeIDs::from_repr(255).unwrap()), Err(e) if e.is::<errors::GatherUnknownTypeError>()));
+        assert!(matches!(builder.gather_by_id(TypeIDs::Test5), Err(e) if e.is::<errors::GatherUnknownTypeError>()));
 
         assert_eq!(
             builder
                 .gather_by_id(TypeIDs::Test1).unwrap()
-                .gather_by_id(TypeIDs::from_repr(252).unwrap()).unwrap()
+                .gather_by_id(TypeIDs::Test2).unwrap()
                 .gather_by_id(TypeIDs::Test3).unwrap()
                 .build(&mut TSMCtrlInfo::default()),
             [[TSMCtrlInfo::new(1_U7, true).to_wire(2+1+3+1+11+1+64),

@@ -372,8 +372,6 @@ impl<'a, B: DeviceBackingAPI> SX1302<'a, B> {
 mod tests {
     use std::ffi;
 
-    use bitvec::vec;
-
     use crate::{common::{Bandwidth, BufferType, LoraCodeRate, SpreadFactor}, network::{NetworkRadio, SendError}, packet::{OutgoingPacketConfig, OutgoingPacketModulation, OutgoingPacketTiming}, sx1302::{SX1302, backing::unit_test_backing::UnitTestDevice, bindings_loragw_hal::{self, BW_125KHZ, CR_LORA_4_5, DR_LORA_SF7, IMMEDIATE, LGW_HAL_ERROR, LGW_HAL_SUCCESS, MOD_LORA, RX_OFF, RX_ON, RX_STATUS, RX_STATUS_UNKNOWN, RX_SUSPENDED, STAT_CRC_BAD, STAT_CRC_OK, TX_EMITTING, TX_FREE, TX_OFF, TX_SCHEDULED, TX_STATUS, TX_STATUS_UNKNOWN, lgw_conf_board_s, lgw_conf_demod_s, lgw_conf_ftime_s, lgw_conf_rxrf_s, lgw_pkt_rx_s, lgw_pkt_tx_s, lgw_rssi_tcomp_s}, conf, error::{ConfigureError, FailedToGetStatus, FailedToGetTemp, FailedToStart, FailedToStop, FailedToTryReceive, TrySendError}, testing::new_FunctionData, types::{RadioStatus, Radios}}};
     use crate::sx1302::types::*;
     use crate::common_config::MAX_PAYLOAD_SIZE;

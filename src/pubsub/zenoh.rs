@@ -1,8 +1,8 @@
-use std::marker::PhantomData;
+use std::{borrow::Cow, marker::PhantomData};
 
-use zenoh::{Config, Wait, config};
+use zenoh::{Config, Wait, config, sample::Sample};
 
-use crate::pubsub::{Connection, Publisher, Subscriber};
+use crate::pubsub::{Connection, Publisher, Subscriber, SubscriberOnChange};
 
 pub struct ZenohConnection<'a> { 
     _marker: PhantomData<&'a Self>, 
@@ -20,7 +20,19 @@ impl<'a> Connection for ZenohConnection<'a> {
     type S = ZenohSubscriber;
     fn subscribe(&mut self, path: String) -> Self::S {
         ZenohSubscriber {
-            subscriber: self.session.declare_subscriber(path).wait().unwrap(),
+            subscriber: self.session.declare_subscriber(path)
+                .with(zenoh::handlers::RingChannel::new(1))
+                .wait().unwrap(),
+        }
+    }
+
+    type SC = ZenohOnChangeSubscriber;
+    fn subscribe_on_change(&mut self, path: String) -> Self::SC {
+        ZenohOnChangeSubscriber {
+            subscriber: self.session.declare_subscriber(path)
+                .with(zenoh::handlers::RingChannel::new(1))
+                .wait().unwrap(),
+            last: None
         }
     }
 
@@ -43,7 +55,7 @@ impl<const N: usize> Publisher<N> for ZenohPublisher<'_, N> {
 }
 
 pub struct ZenohSubscriber {
-    subscriber: zenoh::pubsub::Subscriber<zenoh::handlers::FifoChannelHandler<zenoh::sample::Sample>>
+    subscriber: zenoh::pubsub::Subscriber<zenoh::handlers::RingChannelHandler<zenoh::sample::Sample>>,
 }
 impl Subscriber for ZenohSubscriber {
     fn get(&mut self) -> Result<Option<crate::common::BufferType>, crate::errors::AnyError> {
@@ -53,5 +65,27 @@ impl Subscriber for ZenohSubscriber {
         } else {
             Ok(None)
         }
+    }
+}
+
+pub struct ZenohOnChangeSubscriber {
+    subscriber: zenoh::pubsub::Subscriber<zenoh::handlers::RingChannelHandler<zenoh::sample::Sample>>,
+    last: Option<Vec<u8>>,
+}
+impl SubscriberOnChange for ZenohOnChangeSubscriber {
+    fn get_onchange(&mut self) -> Result<Option<crate::common::BufferType>, crate::errors::AnyError> {
+        let sample = self.subscriber.try_recv()?;
+        if let Some(s) = sample {
+            let r = s.payload().to_bytes().into();
+
+            if let Some(l) = &self.last && r == *l {
+                return Ok(None);
+            }
+
+            self.last = Some(r);
+            Ok(self.last.clone())
+        } else {
+            Ok(None)
+        }   
     }
 }
