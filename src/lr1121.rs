@@ -1,5 +1,5 @@
 use std::time;
-use crate::{common::BufferType, errors::{self, AnyError}, lr1121wrapper::{Context, begin, end, init, receive, transmit}, network::{NetworkRadio, SendError}, packet::{OutgoingPacketConfig, ReceivedPacket}};
+use crate::{common::{BufferType, SpreadFactor}, common_config::UPLINK_TRANSMIT_TIMEOUT_PERIOD, errors::{self, AnyError}, lr1121wrapper::{Context, begin, end, init, receive, setCodingRate, setFrequency, setSpreadingFactor, transmit}, network::{NetworkRadio, SendError}, packet::{self, OutgoingPacketConfig, PacketMetadata, ReceivedPacket}};
 
 pub struct lr1121Config {
     pub spi_channel:    u8,
@@ -26,8 +26,8 @@ pub struct lr1121Config {
 
 struct lr1121 {
     ctx: *mut  Context,
-    stopRec:   bool,
-    stopTrans: bool,
+    config: lr1121Config,
+    currentlyRec: bool,
 }
 
 impl lr1121 {
@@ -47,8 +47,14 @@ impl lr1121 {
         };
         Self {
             ctx: new_ctx,
-            stopRec: false,
-            stopTrans: false
+            config: lr1121Config {
+                spi_channel: 0, spi_speed: 0, spi_device: 0, 
+                gpio_device: 0, cs: 0, irq: 0, 
+                rst: 0, busy: 0, dio8: 0, 
+                freq: 0.0, bw: 0.0, sf: 0, 
+                cr: 0, sync_word: 0, power: 22, 
+                preamble_length: 0, tcxo_voltage: 3.3, timeout: 0},
+            currentlyRec: false
         }
     }
 }
@@ -63,15 +69,15 @@ impl NetworkRadio for lr1121 {
     fn configure(&mut self) -> Result<(), Self::ConfigureError> {
         let state = unsafe {
             begin(
-                self.ctx,   //ctx
-                000.0,         //freq MHz
-                000.0,           //bw
-                0,               //sf
-                0,               //cr
-                0,         //sync word
-                22,           //power
-                0,   //preamble length
-                3.3     //tcxo voltage
+                self.ctx,                              //ctx
+                self.config.freq,                              //freq MHz
+                self.config.bw,                                //bw
+                self.config.sf,                                //sf
+                self.config.cr,                                //cr
+                self.config.sync_word,               //sync word
+                self.config.power,                             //power
+                self.config.preamble_length,   //preamble length
+                self.config.tcxo_voltage          //tcxo voltage
             )
         };
         if state != 0 {
@@ -85,25 +91,42 @@ impl NetworkRadio for lr1121 {
     /// receive packets from radio
     fn try_receive(&mut self) -> Result<Vec<ReceivedPacket>, Self::ReceiveError> {
 
-        
-        
-        let packets: Vec<ReceivedPacket>;
+
         let mut buffer = [0u8; 256]; 
         let data_ptr = buffer.as_mut_ptr();
-        loop {
-            if self.stopRec {
-                return Ok(Vec::new()); 
-            }
+        let result = unsafe {
+            receive(self.ctx, data_ptr, buffer.len(), UPLINK_TRANSMIT_TIMEOUT_PERIOD.as_millis() as u32)
+        };
 
-            let result = unsafe {
-                receive(self.ctx, data_ptr, buffer.len(), UPLINK_TRANSMIT_BEGIN_PERIOD)
+
+        if result == 0 {
+            let sf = match self.config.sf {
+                5 => SpreadFactor::SF5,
+                6 => SpreadFactor::SF6,
+                7 => SpreadFactor::SF7,
+                8 => SpreadFactor::SF8,
+                9 => SpreadFactor::SF9,
+                _ => panic!("invalid spread factor {}", self.config.sf),
+            }
+            let metadata = PacketMetadata {
+                length: buffer.len(),
+                snr: ,
+                frequency: self.config.freq as u32,
+                sf: sf,
+                coderate: 
             };
 
-            if result == 0 {
-                let packets = vec![ReceivedPacket(&buffer)]; 
-                println!("INFO LR1121: Got new packet: {:#?}", packets);
-                return Ok(packets);
+
+           let packets = vec![ReceivedPacket {
+                data: buffer,
+                meta: metadata,
+           }]; 
+            println!("INFO LR1121: Got new packet: {:#?}", packets);
+            return Ok(packets);
+        } else {
+            return Ok(Vec::new());
         }
+        
     }
         
     type CustomSendError = AnyError;
@@ -111,7 +134,15 @@ impl NetworkRadio for lr1121 {
     fn try_send(&mut self, packet_config: OutgoingPacketConfig, payload: &BufferType) -> Result<time::Duration, SendError<Self::CustomSendError>> {
         let delay = 0; 
         let address = 0;
-        //do I change freq and everything else per packet
+        match packet_config.modulation {
+            crate::packet::OutgoingPacketModulation::LoRa { spread_factor, coderate, .. } => unsafe {
+                setSpreadingFactor(self.ctx, spread_factor.into(), false);
+                setCodingRate(self.xtc, coderate, longInterleave);
+                setFrequency(self.ctx, packet_config.freq_hz.into());
+            },
+            _ => return "Unsupported modulation".into()
+        }
+        
         let result = unsafe {
             transmit(self.ctx, delay, payload.as_ptr(), payload.len(), address)
         }; //payload maybe shouldn't be a reference
@@ -124,10 +155,6 @@ impl NetworkRadio for lr1121 {
 
     /// start the radio
     fn start(&mut self) -> Result<(), AnyError> {
-
-
-
-
         println!("INFO LR1121: Gateway susscessfully started operation.");
         Ok(())
     }
