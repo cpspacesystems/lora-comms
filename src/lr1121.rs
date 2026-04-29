@@ -168,8 +168,6 @@ impl NetworkRadio for lr1121 {
     }
     /// check if the radio is currently receiving
     fn is_currently_receiving(&mut self) -> Result<bool, AnyError> {
-        ///?????
+        Ok(self.currentlyRec)
     }
 }
-
-//end and destory radio and context??
