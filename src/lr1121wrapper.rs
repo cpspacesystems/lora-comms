@@ -53,4 +53,6 @@ unsafe extern "C" {
 
     pub fn flash_firmware(ctx: *mut Context) -> i32;
     pub fn reset(context: *mut Context) -> i16;
+
+    pub fn getSNR(context: *mut Context) -> f32;
 }

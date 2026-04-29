@@ -1,5 +1,5 @@
 use std::time;
-use crate::{common::{BufferType, SpreadFactor}, common_config::UPLINK_TRANSMIT_TIMEOUT_PERIOD, errors::{self, AnyError}, lr1121wrapper::{Context, begin, end, init, receive, setCodingRate, setFrequency, setSpreadingFactor, transmit}, network::{NetworkRadio, SendError}, packet::{self, OutgoingPacketConfig, PacketMetadata, ReceivedPacket}};
+use crate::{common::{BufferType, SpreadFactor, LoraCodeRate}, common_config::UPLINK_TRANSMIT_TIMEOUT_PERIOD, errors::{self, AnyError}, lr1121wrapper::{Context, begin, end, getSNR, init, receive, setCodingRate, setFrequency, setSpreadingFactor, transmit}, network::{NetworkRadio, SendError}, packet::{self, OutgoingPacketConfig, PacketMetadata, ReceivedPacket}};
 
 pub struct lr1121Config {
     pub spi_channel:    u8,
@@ -90,7 +90,7 @@ impl NetworkRadio for lr1121 {
     type ReceiveError = error;
     /// receive packets from radio
     fn try_receive(&mut self) -> Result<Vec<ReceivedPacket>, Self::ReceiveError> {
-
+        self.currentlyRec = true;
 
         let mut buffer = [0u8; 256]; 
         let data_ptr = buffer.as_mut_ptr();
@@ -107,23 +107,33 @@ impl NetworkRadio for lr1121 {
                 8 => SpreadFactor::SF8,
                 9 => SpreadFactor::SF9,
                 _ => panic!("invalid spread factor {}", self.config.sf),
-            }
+            };
+            let cr = match self.config.cr {
+                1 => LoraCodeRate::CR1,
+                2 => LoraCodeRate::CR2,
+                3 => LoraCodeRate::CR3,
+                4 => LoraCodeRate::CR4,
+                _ => panic!("invalid coderate {}", self.config.cr),
+            };
+
             let metadata = PacketMetadata {
                 length: buffer.len(),
-                snr: ,
+                snr: unsafe {getSNR(self.ctx)},
                 frequency: self.config.freq as u32,
                 sf: sf,
-                coderate: 
+                coderate: cr
             };
 
 
            let packets = vec![ReceivedPacket {
-                data: buffer,
+                data: buffer.to_vec(),
                 meta: metadata,
            }]; 
             println!("INFO LR1121: Got new packet: {:#?}", packets);
+            self.currentlyRec = false;
             return Ok(packets);
         } else {
+            self.currentlyRec = false;
             return Ok(Vec::new());
         }
         
@@ -137,10 +147,15 @@ impl NetworkRadio for lr1121 {
         match packet_config.modulation {
             crate::packet::OutgoingPacketModulation::LoRa { spread_factor, coderate, .. } => unsafe {
                 setSpreadingFactor(self.ctx, spread_factor.into(), false);
-                setCodingRate(self.xtc, coderate, longInterleave);
-                setFrequency(self.ctx, packet_config.freq_hz.into());
+                setCodingRate(self.ctx, coderate as u8, false);
+
+
+
+// check with Alvin on longInterleave
+
+                setFrequency(self.ctx, packet_config.freq_hz as f32);
             },
-            _ => return "Unsupported modulation".into()
+            _ => return Err("Unsupported modulation".into())
         }
         
         let result = unsafe {
@@ -171,3 +186,15 @@ impl NetworkRadio for lr1121 {
         Ok(self.currentlyRec)
     }
 }
+
+//end and destory radio and context??
+
+
+
+
+
+
+
+////// add snr to radiolib
+//
+// add snr
