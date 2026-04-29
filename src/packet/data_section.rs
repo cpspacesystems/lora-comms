@@ -8,7 +8,7 @@ use crate::errors::*;
 use crate::{network_ids::{TypeID, TypeIDs}};
 
 /// creates a new data section of type with data
-pub fn create_data_section(type_id: TypeIDs, mut data: Vec<u8>) -> Result<BufferType, AnyError> {
+pub fn create_data_section(type_id: TypeID, mut data: Vec<u8>) -> Result<BufferType, AnyError> {
     let mut buffer = BufferType::with_capacity(1 + data.len());
 
     buffer.push((type_id as u8).to_le());
@@ -77,7 +77,7 @@ use crate::network_ids::TypeIDs;
     fn test_create_data_section() {        
         let data = b"abc".to_vec();
         let correct: Vec<u8> = [0xFA, 0x61, 0x62, 0x63].to_vec();
-        assert_eq!(create_data_section(TypeIDs::from_repr(250).unwrap(), data).unwrap(), correct); 
+        assert_eq!(create_data_section(250, data).unwrap(), correct); 
     }
 
     #[test]
@@ -85,14 +85,14 @@ use crate::network_ids::TypeIDs;
         let consumer_mg = ConsumerManager::new();
         assert!(decode_data_sections(&consumer_mg, vec![0xFF, 0x01].as_slice()).is_err());
 
-        let d1 = create_data_section(TypeIDs::Test1, b"abc".to_vec()).unwrap();
+        let d1 = create_data_section(TypeIDs::Test1.into(), b"abc".to_vec()).unwrap();
         assert_eq!(
             decode_data_sections(&consumer_mg, d1.as_slice()).unwrap(),
             vec![DecodedDataSection {id: TypeIDs::Test1 as u8, bytes: b"abc".to_vec(), data_consumer: consumer_mg.get_consumer_by_id(&TypeIDs::Test1).unwrap()}]
         );
 
-        let d1 = create_data_section(TypeIDs::Test1, b"abc".to_vec()).unwrap();
-        let d2 = create_data_section(TypeIDs::Test2, b"hello world".to_vec()).unwrap();
+        let d1 = create_data_section(TypeIDs::Test1.into(), b"abc".to_vec()).unwrap();
+        let d2 = create_data_section(TypeIDs::Test2.into(), b"hello world".to_vec()).unwrap();
         let d3 = [d1.clone(), d2.clone(), d1.clone(), d2.clone()].concat();
         assert_eq!(
             decode_data_sections(&consumer_mg, d3.as_slice()).unwrap(), 

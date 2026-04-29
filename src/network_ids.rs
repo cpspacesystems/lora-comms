@@ -2,7 +2,6 @@ pub type TypeID = u8;
 
 #[repr(u8)]
 #[derive(Debug)]
-#[derive(strum::FromRepr)]
 #[derive(Clone, Copy)]
 #[derive(Eq, Hash, PartialEq)]
 pub enum TypeIDs {
@@ -22,9 +21,9 @@ pub enum TypeIDs {
     Altimeter2 = 11,
     Altimeter3 = 12,
 
-    IMU1 = 21,
-    IMU2 = 22,
-    IMU3 = 23,
+    ConstantPollRate1Hz = 21,
+    ConstantPollRateHalfHz = 22,
+    ConstantPollRate10Hz = 23,
 
     GPS1 = 30,
 
@@ -49,4 +48,15 @@ pub enum TypeIDs {
     Test4 = 254,
     #[cfg(test)] // 255 must not be created in any of the conumer/producer mgs for tests to pass
     Test5 = 255,
+}
+
+impl From<TypeIDs> for TypeID {
+    fn from(value: TypeIDs) -> Self {
+        value as TypeID
+    }
+}
+impl From<&TypeIDs> for TypeID {
+    fn from(value: &TypeIDs) -> Self {
+        *value as TypeID
+    }
 }

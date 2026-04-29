@@ -19,6 +19,10 @@ pub struct AssertFailure(pub String);
 pub struct GatherUnknownTypeError(pub TypeID);
 
 #[derive(Error, Debug, PartialEq)]
+#[error("Expected size of {0} data to be produced, but got data size of {1}!")]
+pub struct GatherUnexpectedSize(pub usize, pub usize);
+
+#[derive(Error, Debug, PartialEq)]
 #[error("Type id {0} does not exist in this world, the data is sent to the astroid belts.")]
 pub struct DecodeUnknownTypeError(pub TypeID);
 

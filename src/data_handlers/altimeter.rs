@@ -8,19 +8,19 @@ use crate::{common::BufferType, data_handlers::{DataConsumer, DataProducer}, err
 mod fb_alitmeter;
 
 
-pub struct Producer<T: pubsub::Subscriber> {
+pub struct Producer<const N: usize, T: pubsub::Subscriber> {
     subscriber: T
 }
 
-impl<T: pubsub::Subscriber> Producer<T> {
-    pub fn new(subscriber: T) -> Producer<T> {
+impl<const N: usize, T: pubsub::Subscriber> Producer<N, T> {
+    pub fn new(subscriber: T) -> Producer<N, T> {
         Producer {
             subscriber
         }
     }
 }
 
-impl<T: pubsub::Subscriber> DataProducer for Producer<T> {
+impl<const N: usize, T: pubsub::Subscriber> DataProducer for Producer<N, T> {
     /// gets altimeter data from zenoh and produces a binary representation
     /// 
     /// this produces 4 bytes
@@ -35,6 +35,10 @@ impl<T: pubsub::Subscriber> DataProducer for Producer<T> {
         } else {
             Ok(None)
         }
+    }
+
+    fn get_size(&self) -> usize {
+        N
     }
 }
 

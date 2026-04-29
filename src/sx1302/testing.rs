@@ -1,8 +1,6 @@
 use core::str;
 use std::{any::TypeId, cell::UnsafeCell, collections::HashMap, fmt::Debug, marker::PhantomData, ops::Not};
 
-use paste::paste;
-
 /// Marks what kind of parameter a functions's arguments are 
 #[derive(Debug, PartialEq, Clone, Copy)]
 pub enum ParamType<T> {

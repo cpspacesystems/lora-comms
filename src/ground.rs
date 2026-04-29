@@ -2,7 +2,7 @@ use std::{rc::Rc, thread::sleep, time::Duration};
 
 #[cfg(all(not(test), feature = "simulation"))]
 use crate::network::simulated_radio::SimulatedRadio;
-use crate::{common::{Bandwidth, BufferType, LoraChannel, LoraCodeRate}, common_config::{ALLOW_CH_CHANGE, DOWNLINK_CH, INITIAL_CODE_RATE, LORA_PREAMBLE_LENGTH, UPLINK_CH}, data_handlers::{ConsumerManager, DataConsumer, ProducerManager, altimeter::Producer}, network::{NetworkRadio, conn_mgr::RadioConnectionManager}, packet::{DecodedPacket, OutgoingFrameBuilder, data_section::{DecodedDataSection, decode_data_sections}, transmission_ctrl::TSMCtrlInfo}, pubsub::{Connection, tism::TISMConnection, zenoh::{ZenohConnection, ZenohPublisher}}, sx1302::{SX1302, backing::{DeviceBackingAPI, PhysicalDevice}, conf::{DEFAULT_SX1302_CONFIG, SX1302Configuration}, error::TrySendError, types::{RadioStatus, Radios}}};
+use crate::{common::{AsRc, Bandwidth, BufferType, LoraChannel, LoraCodeRate}, common_config::{ALLOW_CH_CHANGE, DOWNLINK_CH, INITIAL_CODE_RATE, LORA_PREAMBLE_LENGTH, UPLINK_CH}, data_handlers::{ConsumerManager, DataConsumer, ProducerManager, altimeter::Producer}, network::{NetworkRadio, conn_mgr::RadioConnectionManager}, packet::{DecodedPacket, OutgoingFrameBuilder, data_section::{DecodedDataSection, decode_data_sections}, transmission_ctrl::TSMCtrlInfo}, pubsub::{Connection, tism::TISMConnection, zenoh::{ZenohConnection, ZenohPublisher}}, sx1302::{SX1302, backing::{DeviceBackingAPI, PhysicalDevice}, conf::{DEFAULT_SX1302_CONFIG, SX1302Configuration}, error::TrySendError, types::{RadioStatus, Radios}}};
 use crate::network_ids::TypeIDs;
 
 #[cfg(test)]
@@ -19,28 +19,37 @@ mod network;
 mod common_config;
 mod ground_config;
 
+
+mod codegen {
+    include!{concat!(env!("OUT_DIR"), "/codegen_ground_to_rocket.rs")}
+}
+
 fn main() {
     println!("CPSS - LoRa Ground Communication Node");
 
-    // configure zenoh
-    let mut zenoh = ZenohConnection::new();
-    let mut tism = TISMConnection;
+
     // start zenoh
 
     let mut producer_mgmt = ProducerManager::new();
     
     let mut consumer_mgmt = ConsumerManager::new();
     
-    let altimeter1 = data_handlers::prng_data_source::PRNG::new(100).as_rc();
-    let altimeter2 = data_handlers::prng_data_source::PRNG::new(100).as_rc();
-    let altimeter3 = data_handlers::prng_data_source::PRNG::new(100).as_rc();
-    let cmd1 = data_handlers::prng_data_source::PRNG::new(10).as_rc();
-    // let altimeter1 = data_handlers::altimeter::Consumer::<5, ZenohPublisher<5>>::new(zenoh.publish("/test/alt1".to_string())).as_rc();
-    // producer_mgmt.add(TypeIDs::Altimeter1, altimeter1.clone());
-    consumer_mgmt.add(TypeIDs::Altimeter1, altimeter1.clone());
-    consumer_mgmt.add(TypeIDs::Altimeter2, altimeter2.clone());
-    consumer_mgmt.add(TypeIDs::Altimeter3, altimeter3.clone());
-    producer_mgmt.add(TypeIDs::SignalDeployParachute, cmd1.clone());
+    #[cfg(not(any(test, feature = "simulation")))]
+    let (mut _tism, mut _zenoh) = codegen::codegen_initialize_ground(&mut producer_mgmt, &mut consumer_mgmt, 
+        || TISMConnection, || ZenohConnection::new());
+    #[cfg(feature = "simulation")]
+    {
+        let altimeter1 = data_handlers::prng_data_source::PRNG::new(100).as_rc();
+        let altimeter2 = data_handlers::prng_data_source::PRNG::new(100).as_rc();
+        let altimeter3 = data_handlers::prng_data_source::PRNG::new(100).as_rc();
+        let cmd1 = data_handlers::prng_data_source::PRNG::new(10).as_rc();
+        // let altimeter1 = data_handlers::altimeter::Consumer::<5, ZenohPublisher<5>>::new(zenoh.publish("/test/alt1".to_string())).as_rc();
+        // producer_mgmt.add(TypeIDs::Altimeter1, altimeter1.clone());
+        consumer_mgmt.add(TypeIDs::Altimeter1, altimeter1.clone());
+        consumer_mgmt.add(TypeIDs::Altimeter2, altimeter2.clone());
+        consumer_mgmt.add(TypeIDs::Altimeter3, altimeter3.clone());
+        producer_mgmt.add(TypeIDs::SignalDeployParachute, cmd1.clone());
+    }
 
     let mut connection_mgr = RadioConnectionManager::new_uplink(
         common_config::RADIO_ENABLE_UPLINK,

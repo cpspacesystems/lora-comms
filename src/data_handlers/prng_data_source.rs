@@ -36,6 +36,10 @@ impl DataProducer for PRNG {
         
         Ok(Some(res))
     }
+    
+    fn get_size(&self) -> usize {
+        self.size
+    }
 }
 
 impl DataConsumer for PRNG {

@@ -1,7 +1,9 @@
 use std::{thread::sleep, time::Duration};
 
+use crate::common::AsRc;
 // #[cfg(all(not(test), feature = "simulation"))]
 use crate::network::simulated_radio::SimulatedRadio;
+use crate::pubsub::Connection;
 use crate::{common_config::{DOWNLINK_CH, INITIAL_CODE_RATE, LORA_PREAMBLE_LENGTH}, data_handlers::{ConsumerManager, DataConsumer, ProducerManager}, network::{NetworkRadio, conn_mgr::RadioConnectionManager}, network_ids::{TypeID, TypeIDs}, packet::DecodedPacket, pubsub::{tism::TISMConnection, zenoh::ZenohConnection}};
 
 mod packet;
@@ -15,49 +17,35 @@ mod common_config;
 mod lr1121;
 mod lr1121wrapper;
 
-//lora radio code: tell zenoh when to get new data
-//goes through everything it needs to get (newest version of data) and puts it into flatbuffers
-//put flatbuffers into packets
-//send packets into lora
-//schedule packet to be sent over lora
-// fn main() {
-//     println!("Program starting");
-
-//     let mut f_exit = false;
-//     while !f_exit {
-//         // grab stuff from zenoh and convert it to data section
-//         // send said packet to LR1100 interface 
-//         // configure LR1100 
-//         // send bytes
-//         //
-//     }; 
-// }
-
+mod codegen {
+    include!{concat!(env!("OUT_DIR"), "/codegen_rocket_to_ground.rs")}
+}
 
 fn main() {
-    println!("CPSS - LoRa Ground Communication Node");
-
-    // configure zenoh
-    // let mut zenoh = ZenohConnection::new();
-    let mut tism = TISMConnection;
-    // start zenoh
+    println!("CPSS - LoRa Rocket Communication Node");
 
     let mut producer_mgmt = ProducerManager::new();
     
-    let mut consumer_mgmt = ConsumerManager::new();
+    let mut consumer_mgmt= ConsumerManager::new();
+
+    #[cfg(not(any(test, feature = "simulation")))]
+    let (mut _tism, mut _zenoh) = codegen::codegen_initialize_rocket(&mut producer_mgmt, &mut consumer_mgmt, 
+        || TISMConnection, || ZenohConnection::new());
     
-    let altimeter1 = data_handlers::prng_data_source::PRNG::new(100).as_rc();
-    let altimeter2 = data_handlers::prng_data_source::PRNG::new(100).as_rc();
-    let cmd1 = data_handlers::prng_data_source::PRNG::new(10).as_rc();
-    // let altimeter3 = data_handlers::prng_data_source::PRNG::new(100).as_rc();
+    #[cfg(feature = "simulation")]
+    {
+        let altimeter1 = data_handlers::prng_data_source::PRNG::new(100).as_rc();
+        let altimeter2 = data_handlers::prng_data_source::PRNG::new(100).as_rc();
+        let cmd1 = data_handlers::prng_data_source::PRNG::new(10).as_rc();
+        // let altimeter3 = data_handlers::prng_data_source::PRNG::new(100).as_rc();
 
-    // let altimeter1 = data_handlers::altimeter::Consumer::<5, ZenohPublisher<5>>::new(zenoh.publish("/test/alt1".to_string())).as_rc();
-    producer_mgmt.add(TypeIDs::Altimeter1, altimeter1.clone());
-    producer_mgmt.add(TypeIDs::Altimeter2, altimeter2.clone());
-    // producer_mgmt.add(TypeIDs::Altimeter3, altimeter3.clone());
-    consumer_mgmt.add(TypeIDs::Altimeter1, altimeter1.clone());
-    consumer_mgmt.add(TypeIDs::SignalDeployParachute, cmd1.clone());
-
+        // let altimeter1 = data_handlers::altimeter::Consumer::<5, ZenohPublisher<5>>::new(zenoh.publish("/test/alt1".to_string())).as_rc();
+        producer_mgmt.add(TypeIDs::Altimeter1, altimeter1.clone());
+        producer_mgmt.add(TypeIDs::Altimeter2, altimeter2.clone());
+        // producer_mgmt.add(TypeIDs::Altimeter3, altimeter3.clone());
+        consumer_mgmt.add(TypeIDs::Altimeter1, altimeter1.clone());
+        consumer_mgmt.add(TypeIDs::SignalDeployParachute, cmd1.clone());
+    }
 
     let mut connection_mgr = RadioConnectionManager::new_downlink(
         common_config::RADIO_ENABLE_UPLINK,

@@ -1,4 +1,4 @@
-use std::hash::{BuildHasher, Hasher, RandomState};
+use std::{cell::RefCell, hash::{BuildHasher, Hasher, RandomState}, rc::Rc};
 
 use crc::{self, CRC_8_LTE, CRC_16_CMS};
 
@@ -177,3 +177,10 @@ pub fn compute_crc16(bytes: &[u8]) -> u16 {
     crc.checksum(bytes)
 }
 
+
+pub trait AsRc {
+    fn as_rc(self) -> Rc<RefCell<Self>> where Self: Sized {
+        Rc::new(RefCell::new(self))
+    }
+}
+impl<T> AsRc for T {}
