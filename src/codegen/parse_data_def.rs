@@ -1,6 +1,6 @@
 use std::{env, error::Error, fs, path::Path, str::Lines, time};
 
-use crate::codegen::{DataDefEntry, Direction, NetworkType, PollRate, generator::Generator};
+use crate::codegen::{DataDefEntry, Direction, NetworkType, PollRate, generator::{Generator, IDProvider}};
 type AnyError = Box<dyn Error + Send + Sync>;
 
 const DOC_TYPE: &str = "!LORA_DATA_DEF-V0.1";
@@ -24,8 +24,8 @@ fn map_poll_rate(rate: impl AsRef<str>) -> PollRate {
         "OnChange" => PollRate::OnChange,
         "ASAP" => PollRate::ASAP,
         s if s.ends_with("Hz") => PollRate::FixedRate(
-            time::Duration::from_secs_f64(s
-                [..s.len()-2].parse().expect("DATA DEF PARSING: Expected a valid number for poll-rate")
+            time::Duration::from_secs_f64(
+                1_f64/s[..s.len()-2].parse::<f64>().expect("DATA DEF PARSING: Expected a valid number for poll-rate")
             )
         ), 
         _ => panic!("DATA DEF PARSING: Unregonized poll-rate.")
@@ -91,8 +91,8 @@ fn parse_ground_to_rocket<'a>(ctx: &mut DataParserContext, lines: &mut impl Iter
             return;
         } else {
             let entry = line_to_entry(line);
-            ctx.ground_to_rocket.add_entry_producing(&entry);
             ctx.rocket_to_ground.add_entry_consuming(&entry);
+            ctx.ground_to_rocket.add_entry_producing(&entry);
         }
     }
 }
@@ -129,9 +129,11 @@ pub fn parse_data_def(path: &str) {
     }
 
     // finalize and output generated files
-    fs::write(Path::new(&out_dir).join("codegen_rocket_to_ground.rs"), ctx.rocket_to_ground.finalize())
+    let mut id_provider = IDProvider::new();
+    fs::write(Path::new(&out_dir).join("codegen_rocket_to_ground.rs"), ctx.rocket_to_ground.finalize(&mut id_provider))
         .expect("DATA DEF PARSING: Failed to write codegen_rocket_to_ground.rs!");
-    fs::write(Path::new(&out_dir).join("codegen_ground_to_rocket.rs"), ctx.ground_to_rocket.finalize())
+    id_provider.switch_sides();
+    fs::write(Path::new(&out_dir).join("codegen_ground_to_rocket.rs"), ctx.ground_to_rocket.finalize(&mut id_provider))
         .expect("DATA DEF PARSING: Failed to write codegen_ground_to_rocket.rs!");
 }
 

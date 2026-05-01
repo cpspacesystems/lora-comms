@@ -14,7 +14,7 @@ pub struct SimulatedRadio {
     send_finish: time::Instant,
     outgoing_byterate: VecDeque<(time::Instant, usize)>, // send start time, size
 
-    tokio_rt: tokio::runtime::Runtime,
+    tokio_rt: tokio::runtime::Handle,
     root_task_handle: Option<tokio::task::AbortHandle>,
     shared: Arc<SharedData>
 }
@@ -88,7 +88,7 @@ impl SimulatedRadio {
 
             send_finish: time::Instant::now(),
 
-            tokio_rt: tokio::runtime::Runtime::new().unwrap(),
+            tokio_rt: crate::simulation::get_tokio_or_init(),
             root_task_handle: None,
             shared: SharedData::new().into()
         }

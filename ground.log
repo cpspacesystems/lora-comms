@@ -1,0 +1,70 @@
+CPSS - LoRa Ground Communication Node
+HWAS: Spawn tism pub size of 4 at ground_signal1
+HWAS: Spawn tism pub size of 16 at ground_signal2
+Added producer of id 21
+Added producer of id 22
+Added Consumer of id 121
+Added Consumer of id 122
+Added Consumer of id 123
+Added Consumer of id 124
+Added Consumer of id 125
+Added Consumer of id 126
+Added Consumer of id 127
+Added Consumer of id 128
+Added Consumer of id 129
+Made tism allocation ground_signal1 of size 4
+Made tism allocation ground_signal2 of size 16
+Encountered error while decoding packets: Type id 1 does not exist in this world, the data is sent to the astroid belts.
+Encountered error while decoding packets: Type id 100 does not exist in this world, the data is sent to the astroid belts.
+Encountered error while decoding packets: Type id 80 does not exist in this world, the data is sent to the astroid belts.
+Encountered error while decoding packets: Type id 8 does not exist in this world, the data is sent to the astroid belts.
+Encountered error while decoding packets: Type id 1 does not exist in this world, the data is sent to the astroid belts.
+Encountered error while decoding packets: Type id 100 does not exist in this world, the data is sent to the astroid belts.
+Encountered error while decoding packets: Type id 80 does not exist in this world, the data is sent to the astroid belts.
+Encountered error while decoding packets: Type id 1 does not exist in this world, the data is sent to the astroid belts.
+Encountered error while decoding packets: Type id 8 does not exist in this world, the data is sent to the astroid belts.
+Encountered error while decoding packets: Type id 1 does not exist in this world, the data is sent to the astroid belts.
+Encountered error while decoding packets: Type id 100 does not exist in this world, the data is sent to the astroid belts.
+Encountered error while decoding packets: Type id 80 does not exist in this world, the data is sent to the astroid belts.
+Encountered error while decoding packets: Type id 1 does not exist in this world, the data is sent to the astroid belts.
+Encountered error while decoding packets: Type id 1 does not exist in this world, the data is sent to the astroid belts.
+Encountered error while decoding packets: Type id 100 does not exist in this world, the data is sent to the astroid belts.
+Encountered error while decoding packets: Type id 80 does not exist in this world, the data is sent to the astroid belts.
+Encountered error while decoding packets: Type id 1 does not exist in this world, the data is sent to the astroid belts.
+Encountered error while decoding packets: Type id 8 does not exist in this world, the data is sent to the astroid belts.
+Encountered error while decoding packets: Type id 1 does not exist in this world, the data is sent to the astroid belts.
+Encountered error while decoding packets: Type id 100 does not exist in this world, the data is sent to the astroid belts.
+Encountered error while decoding packets: Type id 80 does not exist in this world, the data is sent to the astroid belts.
+Encountered error while decoding packets: Type id 1 does not exist in this world, the data is sent to the astroid belts.
+Encountered error while decoding packets: Type id 1 does not exist in this world, the data is sent to the astroid belts.
+Encountered error while decoding packets: Type id 100 does not exist in this world, the data is sent to the astroid belts.
+Encountered error while decoding packets: Type id 80 does not exist in this world, the data is sent to the astroid belts.
+Encountered error while decoding packets: Type id 1 does not exist in this world, the data is sent to the astroid belts.
+Encountered error while decoding packets: Type id 8 does not exist in this world, the data is sent to the astroid belts.
+Encountered error while decoding packets: Type id 1 does not exist in this world, the data is sent to the astroid belts.
+Encountered error while decoding packets: Type id 100 does not exist in this world, the data is sent to the astroid belts.
+Encountered error while decoding packets: Type id 80 does not exist in this world, the data is sent to the astroid belts.
+Encountered error while decoding packets: Type id 1 does not exist in this world, the data is sent to the astroid belts.
+Encountered error while decoding packets: Type id 1 does not exist in this world, the data is sent to the astroid belts.
+Encountered error while decoding packets: Type id 100 does not exist in this world, the data is sent to the astroid belts.
+Encountered error while decoding packets: Type id 80 does not exist in this world, the data is sent to the astroid belts.
+Encountered error while decoding packets: Type id 1 does not exist in this world, the data is sent to the astroid belts.
+Encountered error while decoding packets: Type id 8 does not exist in this world, the data is sent to the astroid belts.
+Encountered error while decoding packets: Type id 1 does not exist in this world, the data is sent to the astroid belts.
+Encountered error while decoding packets: Type id 100 does not exist in this world, the data is sent to the astroid belts.
+Encountered error while decoding packets: Type id 80 does not exist in this world, the data is sent to the astroid belts.
+Encountered error while decoding packets: Type id 1 does not exist in this world, the data is sent to the astroid belts.
+Encountered error while decoding packets: Type id 1 does not exist in this world, the data is sent to the astroid belts.
+Encountered error while decoding packets: Type id 100 does not exist in this world, the data is sent to the astroid belts.
+Encountered error while decoding packets: Type id 80 does not exist in this world, the data is sent to the astroid belts.
+Encountered error while decoding packets: Type id 1 does not exist in this world, the data is sent to the astroid belts.
+Encountered error while decoding packets: Type id 8 does not exist in this world, the data is sent to the astroid belts.
+Encountered error while decoding packets: Type id 1 does not exist in this world, the data is sent to the astroid belts.
+Encountered error while decoding packets: Type id 100 does not exist in this world, the data is sent to the astroid belts.
+Encountered error while decoding packets: Type id 80 does not exist in this world, the data is sent to the astroid belts.
+Encountered error while decoding packets: Type id 1 does not exist in this world, the data is sent to the astroid belts.
+Encountered error while decoding packets: Type id 1 does not exist in this world, the data is sent to the astroid belts.
+Encountered error while decoding packets: Type id 100 does not exist in this world, the data is sent to the astroid belts.
+Encountered error while decoding packets: Type id 80 does not exist in this world, the data is sent to the astroid belts.
+Encountered error while decoding packets: Type id 1 does not exist in this world, the data is sent to the astroid belts.
+Encountered error while decoding packets: Type id 8 does not exist in this world, the data is sent to the astroid belts.

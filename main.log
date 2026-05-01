@@ -1,0 +1,174 @@
+CPSS - LoRa Rocket Communication Node
+HWAS: Spawn tism pub size of 80 at tom_src1
+HWAS: Spawn tism pub size of 40 at tom_src2
+HWAS: Spawn tism pub size of 100 at tom_src3
+HWAS: Spawn tism pub size of 120 at tom_src4
+HWAS: Spawn tism pub size of 11 at tom_src5
+HWAS: Spawn tism pub size of 200 at tom_slow1
+HWAS: Spawn tism pub size of 100 at tom_slow2
+HWAS: Spawn tism pub size of 8 at tom_fast1
+Made tism allocation tom_src5 of size 11
+Made tism allocation tom_src4 of size 120
+Made tism allocation tom_src1 of size 80
+Made tism allocation tom_src2 of size 40
+HWAS: Spawn tism pub size of 8 at tom_asap1
+Made tism allocation tom_src3 of size 100
+HWAS: Spawn tism pub size of 16 at tom_asap2
+Made tism allocation tom_slow1 of size 200
+HWAS: Spawn tism pub size of 4 at tom_onchange1
+HWAS: Spawn tism pub size of 100 at tom_onchange2
+Added producer of id 121
+Added producer of id 122
+Added producer of id 123
+Added producer of id 124
+Added producer of id 125
+Added producer of id 126
+Added producer of id 127
+Added producer of id 128
+Added producer of id 129
+Added Consumer of id 21
+Added Consumer of id 22
+Made tism allocation tom_onchange2 of size 100
+Made tism allocation tom_slow2 of size 100
+Made tism allocation tom_onchange1 of size 4
+Made tism allocation tom_asap2 of size 16
+Made tism allocation tom_asap1 of size 8
+Made tism allocation tom_fast1 of size 8
+fconstruct
+SEND: 1
+SEND: 2
+SEND: 3
+SEND: 4
+Outbound bitrate: 0.20 kbps per second.
+Outbound bitrate: 0.29 kbps per second.
+Outbound bitrate: 0.48 kbps per second.
+Outbound bitrate: 0.64 kbps per second.
+fconstruct
+SEND: 5
+SEND: 6
+SEND: 7
+Outbound bitrate: 0.76 kbps per second.
+Outbound bitrate: 0.86 kbps per second.
+Outbound bitrate: 1.04 kbps per second.
+fconstruct
+SEND: 8
+SEND: 9
+Outbound bitrate: 1.24 kbps per second.
+Outbound bitrate: 1.40 kbps per second.
+fconstruct
+SEND: 10
+SEND: 11
+SEND: 12
+Outbound bitrate: 1.52 kbps per second.
+Outbound bitrate: 1.61 kbps per second.
+Outbound bitrate: 1.80 kbps per second.
+fconstruct
+SEND: 13
+Outbound bitrate: 1.92 kbps per second.
+fconstruct
+SEND: 14
+SEND: 15
+SEND: 16
+Outbound bitrate: 2.03 kbps per second.
+Outbound bitrate: 2.13 kbps per second.
+Outbound bitrate: 2.32 kbps per second.
+fconstruct
+SEND: 17
+SEND: 18
+Outbound bitrate: 2.51 kbps per second.
+Outbound bitrate: 2.67 kbps per second.
+fconstruct
+SEND: 19
+SEND: 20
+SEND: 21
+Outbound bitrate: 2.79 kbps per second.
+Outbound bitrate: 2.89 kbps per second.
+Outbound bitrate: 3.07 kbps per second.
+fconstruct
+SEND: 22
+Outbound bitrate: 3.19 kbps per second.
+fconstruct
+SEND: 23
+SEND: 24
+SEND: 25
+Outbound bitrate: 3.30 kbps per second.
+Outbound bitrate: 3.40 kbps per second.
+Outbound bitrate: 3.59 kbps per second.
+fconstruct
+SEND: 26
+SEND: 27
+Outbound bitrate: 3.78 kbps per second.
+Outbound bitrate: 3.94 kbps per second.
+fconstruct
+SEND: 28
+SEND: 29
+SEND: 30
+Outbound bitrate: 4.06 kbps per second.
+Outbound bitrate: 4.16 kbps per second.
+Outbound bitrate: 4.34 kbps per second.
+fconstruct
+SEND: 31
+Outbound bitrate: 4.46 kbps per second.
+fconstruct
+SEND: 32
+SEND: 33
+SEND: 34
+Outbound bitrate: 4.57 kbps per second.
+Outbound bitrate: 4.67 kbps per second.
+Outbound bitrate: 4.86 kbps per second.
+fconstruct
+SEND: 35
+SEND: 36
+Outbound bitrate: 4.86 kbps per second.
+Outbound bitrate: 4.74 kbps per second.
+fconstruct
+SEND: 37
+SEND: 38
+SEND: 39
+Outbound bitrate: 4.85 kbps per second.
+Outbound bitrate: 4.79 kbps per second.
+Outbound bitrate: 4.86 kbps per second.
+fconstruct
+SEND: 40
+Outbound bitrate: 4.88 kbps per second.
+fconstruct
+SEND: 41
+SEND: 42
+SEND: 43
+Outbound bitrate: 4.80 kbps per second.
+Outbound bitrate: 4.71 kbps per second.
+Outbound bitrate: 4.73 kbps per second.
+fconstruct
+SEND: 44
+SEND: 45
+Outbound bitrate: 4.81 kbps per second.
+Outbound bitrate: 4.88 kbps per second.
+fconstruct
+SEND: 46
+SEND: 47
+SEND: 48
+Outbound bitrate: 4.80 kbps per second.
+Outbound bitrate: 4.79 kbps per second.
+Outbound bitrate: 4.86 kbps per second.
+fconstruct
+SEND: 49
+Outbound bitrate: 4.88 kbps per second.
+fconstruct
+SEND: 50
+SEND: 51
+SEND: 52
+Outbound bitrate: 4.80 kbps per second.
+Outbound bitrate: 4.71 kbps per second.
+Outbound bitrate: 4.73 kbps per second.
+fconstruct
+SEND: 53
+SEND: 54
+Outbound bitrate: 4.81 kbps per second.
+Outbound bitrate: 4.88 kbps per second.
+fconstruct
+SEND: 55
+SEND: 56
+SEND: 57
+Outbound bitrate: 4.80 kbps per second.
+Outbound bitrate: 4.79 kbps per second.
+Outbound bitrate: 4.86 kbps per second.

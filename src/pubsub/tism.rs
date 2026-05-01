@@ -1,6 +1,6 @@
 use tism::dynamic::DynamicBorrowedSharedMemory;
 
-use crate::{common::BufferType, errors, pubsub::{Connection, Publisher, Subscriber, SubscriberOnChange}};
+use crate::{common::BufferType, errors, pubsub::{Connection, Publisher, Subscriber, SubscriberOnChange}, simulation};
 
 
 pub struct TISMConnection;

@@ -4,6 +4,34 @@ use crate::codegen::{DataDefEntry, Direction, NetworkType, PollRate};
 
 const PACKER_MAX_SIZE: u64 = 240;
 
+pub struct IDProvider {
+    other_id: u8,
+    active_id: u8,
+}
+impl IDProvider {
+    pub fn new() -> Self {
+        Self { other_id: 20, active_id: 120 }
+    }
+
+    pub fn next_producer(&mut self) -> u8 {
+        self.active_id += 1;
+        self.active_id
+    }
+
+    pub fn next_consumer(&mut self) -> u8 {
+        self.other_id += 1;
+        self.other_id
+    }
+
+    pub fn switch_sides(&mut self) {
+        // let t = self.active_id;
+        // self.active_id = self.other_id;
+        // self.other_id = t;
+        self.active_id = 20;
+        self.other_id = 120;
+    }
+}
+
 pub struct Generator {
     direction: Direction,
     var_name_counter: u64, 
@@ -34,6 +62,9 @@ impl Generator {
 
     /// entrys for the same pair of producer and consumer are expected to have add_entry_* be called adjecent to each other in their respective generators
     pub fn add_entry_producing(&mut self, entry: &DataDefEntry) {
+        #[cfg(feature = "hardware_attached_full_system")]
+        self.hwas_construct_publisher(entry.size, &entry.network, &entry.source);
+        
         let sub_name = self.map_construct_subscriber(&entry.rate, &entry.network, &entry.source);
         let p = self.make_producer_raw_pubsub(entry.size, sub_name);
         match entry.rate {
@@ -52,12 +83,9 @@ impl Generator {
         };
     }
 
-    pub fn finalize(mut self) -> String {
+    pub fn finalize(mut self, id_provider: &mut IDProvider) -> String {
         self.constructed_body.reserve(self.producers.len() + self.consumers.len() + self.rate_map_consumers.len() + self.rate_map_producers.len());
         
-        let mut id_initial = 20;
-        // let pc = self.rate_map_consumers;
-        // self.pack_rate_map(pc, "Producer", "producer_mgmt", &mut id_initial);
         let m = std::mem::take(&mut self.rate_map_producers);
         let p = std::mem::take(&mut self.producers);
         self.producers = self.pack_rate_map(m, "Producer", p);
@@ -66,15 +94,13 @@ impl Generator {
         self.consumers = self.pack_rate_map(m, "Consumer", c);
         
         for name in self.producers {
-            id_initial += 1;
             self.constructed_body.push(
-                format!("producer_mgmt.add_by_id({}, {}.as_rc())", id_initial, name)
+                format!("producer_mgmt.add_by_id({}, {}.as_rc())", id_provider.next_producer(), name)
             );
         }
         for name in self.consumers {
-            id_initial += 1;
             self.constructed_body.push(
-                format!("consumer_mgmt.add_by_id({}, {}.as_rc())", id_initial, name)
+                format!("consumer_mgmt.add_by_id({}, {}.as_rc())", id_provider.next_consumer(), name)
             );
         }
 
@@ -170,7 +196,7 @@ impl Generator {
     }
 
     fn map_construct_subscriber(&mut self, rate: &PollRate, network: &NetworkType, path: &str) -> String {
-        let body =match rate {
+        let body = match rate {
             PollRate::ASAP | PollRate::FixedRate(_) => format!("{}.subscribe(\"{}\".to_string())", self.map_pubsub(network), path),
             PollRate::OnChange => format!("{}.subscribe_on_change(\"{}\".to_string())", self.map_pubsub(network), path),
         };
@@ -182,5 +208,12 @@ impl Generator {
         let body = format!("{}.publish::<{}>(\"{}\".to_string())", self.map_pubsub(network), size, path);
 
         self.make_var("", body)
+    }
+
+    fn hwas_construct_publisher(&mut self, size: u64, network: &NetworkType, path: &str) {
+        let call = format!("crate::simulation::hardware_attached::spawn_{}({}, \"{}\")",
+            self.map_pubsub(network), size, path
+        );
+        self.constructed_body.push(call);
     }
 }

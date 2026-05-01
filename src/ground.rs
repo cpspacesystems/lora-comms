@@ -18,7 +18,8 @@ mod network_ids;
 mod network;
 mod common_config;
 mod ground_config;
-
+mod simulation;
+mod config;
 
 mod codegen {
     include!{concat!(env!("OUT_DIR"), "/codegen_ground_to_rocket.rs")}
@@ -34,10 +35,10 @@ fn main() {
     
     let mut consumer_mgmt = ConsumerManager::new();
     
-    #[cfg(not(any(test, feature = "simulation")))]
+    #[cfg(any(not(any(test, feature = "simulation")), feature = "hardware_attached_full_system"))]
     let (mut _tism, mut _zenoh) = codegen::codegen_initialize_ground(&mut producer_mgmt, &mut consumer_mgmt, 
         || TISMConnection, || ZenohConnection::new());
-    #[cfg(feature = "simulation")]
+    #[cfg(all(feature = "simulation", not(feature = "hardware_attached_full_system")))]
     {
         let altimeter1 = data_handlers::prng_data_source::PRNG::new(100).as_rc();
         let altimeter2 = data_handlers::prng_data_source::PRNG::new(100).as_rc();
@@ -84,7 +85,6 @@ fn main() {
         // fetch any new packets 
         match radio.try_receive() {
             Ok(packets) => {
-                // println!("IN  {} packets.", packets.len());
                 decoded_packets.reserve(packets.len());
                 // if have packets, decode them 
                 for p in packets {
@@ -115,7 +115,6 @@ fn main() {
                 timing: packet::OutgoingPacketTiming::Immediate,
                 rf_power: 27, // max rf power
             };
-            println!("OUT {} packets.", outbound_packets.len());            
             
             for packet in outbound_packets {
                 loop {

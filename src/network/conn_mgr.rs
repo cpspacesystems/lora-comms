@@ -159,6 +159,7 @@ impl<'a> RadioConnectionManager<'a> {
     }
 
     fn construct_frame(&mut self) -> Vec<BufferType> {
+        println!("fconstruct");
         self.frame_builder.gather_all();
         let packets = self.frame_builder.build(&mut self.last_tsm);
         packets

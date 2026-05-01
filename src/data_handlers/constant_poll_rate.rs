@@ -32,7 +32,11 @@ impl<const NP: usize> DataProducer for Producer<NP> {
             let mut p = rc.try_borrow_mut()?;
             match p.produce() {
                 Ok(Some(mut d)) => data.append(&mut d),
-                _ => data.resize(data.len() + p.get_size(), 0),
+                Ok(None) => data.resize(data.len() + p.get_size(), 0),
+                Err(e) => { 
+                    println!("Encountered error while producing: {}", e);
+                    data.resize(data.len() + p.get_size(), 0)
+                },
             }
         };
 

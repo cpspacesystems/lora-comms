@@ -86,11 +86,13 @@ impl ConsumerManager {
     }
 
     /// adds consumer to avaliable consumers managed by this ConsumerManager
+    #[inline]
     pub fn add(&mut self, id: TypeIDs, consumer: Rc<RefCell<dyn DataConsumer>>) {
-        self.consumers.insert(id.into(), consumer);
+        self.add_by_id(id.into(), consumer);
     }
     /// adds consumer to avaliable consumers managed by this ConsumerManager
     pub fn add_by_id(&mut self, id: TypeID, consumer: Rc<RefCell<dyn DataConsumer>>) {
+        println!("Added Consumer of id {}", id);
         self.consumers.insert(id, consumer);
     }
 
@@ -137,11 +139,13 @@ impl ProducerManager {
     }
 
     /// adds producer to avaliable producers managed by this ProducerManager
+    #[inline]
     pub fn add(&mut self, id: TypeIDs, producer: Rc<RefCell<dyn DataProducer>>) {
-        self.producers.insert(id.into(), producer);
+        self.add_by_id(id.into(), producer);
     }
     /// adds producer to avaliable producers managed by this ProducerManager
     pub fn add_by_id(&mut self, id: TypeID, producer: Rc<RefCell<dyn DataProducer>>) {
+        println!("Added producer of id {}", id);
         self.producers.insert(id, producer);
     }
 

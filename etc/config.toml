@@ -1,0 +1,5 @@
+
+[[rocket_to_ground]]
+rate = "Fixed1Hz"
+
+[[ground_to_rocket]]

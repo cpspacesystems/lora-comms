@@ -57,6 +57,7 @@ pub fn decode_data_sections<'a>(consumer_mg: &'a ConsumerManager, data: &[u8]) -
         // get content
         let size = data_consumer.borrow().get_size();
         if head + size > data.len() {
+            println!("Id: {}", id);
             return Err(errors::InvalidData(format!("Expected data of size {}, but go data with size of {}!", head + size, size)).into());
         }
         let bytes = data[head..head + size].to_vec();
