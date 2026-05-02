@@ -1,5 +1,6 @@
 #define RADIOLIB_LR1121_FIRMWARE_0103
 #include "wrapper.h"
+
 #include <RadioLib.h>
 #include "hal/RPi/PiHal.h"
 #include "modules/LR11x0/firmware/lr1121_transceiver_0103.h"
@@ -83,8 +84,8 @@ int begin(Context* ctx, float freq, float bw, uint8_t sf, uint8_t cr,
           uint8_t syncWord, int8_t power, uint16_t preambleLength, float tcxoVoltage) {
     printf("begin: freq=%.1f tcxo=%.1f\n", freq, tcxoVoltage);
     ctx->radio->reset();
-    ctx->hal->delay(500);
-    ctx->radio->XTAL = false; ///????
+    //ctx->hal->delay(500);
+    //ctx->radio->XTAL = false; ///????
     int state = ctx->radio->begin(freq, bw, sf, cr, syncWord, power, preambleLength, tcxoVoltage);
     printf("Final state=%d\n", state);
     return state;
@@ -175,6 +176,10 @@ int flash_firmware(Context* ctx) {
 
 int16_t reset(Context* ctx) {
     return ctx->radio->reset();
+}
+
+float getSNR(Context* ctx) {
+    return ctx->radio->getSNR();
 }
 
 #ifdef __cplusplus

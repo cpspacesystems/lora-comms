@@ -16,7 +16,7 @@ target_include_directories(lora_bridge PUBLIC
 target_link_libraries(lora_bridge PRIVATE RadioLib)
 
 add_custom_command(TARGET lora_bridge POST_BUILD
-    COMMAND /home/adam/Desktop/temp/RadioLib/bridge/merge.sh
+	COMMAND ${CMAKE_SOURCE_DIR}/merge.sh
         $<TARGET_FILE:lora_bridge>
         $<TARGET_FILE:RadioLib>
         ${CMAKE_CURRENT_BINARY_DIR}/liblora_full.a
