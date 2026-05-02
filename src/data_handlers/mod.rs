@@ -1,4 +1,4 @@
-use crate::{common::BufferType, errors::AnyError, network_ids::TypeID};
+use crate::{common::{AsRc, BufferType}, errors::AnyError, network_ids::TypeID};
 use std::{cell::RefCell, collections::HashMap, rc::Rc};
 
 use crate::network_ids::TypeIDs;
@@ -92,7 +92,7 @@ impl ConsumerManager {
     }
     /// adds consumer to avaliable consumers managed by this ConsumerManager
     pub fn add_by_id(&mut self, id: TypeID, consumer: Rc<RefCell<dyn DataConsumer>>) {
-        println!("Added Consumer of id {}", id);
+        println!("Added Consumer size {} of id {}", consumer.borrow().get_size(), id);
         self.consumers.insert(id, consumer);
     }
 
@@ -145,7 +145,7 @@ impl ProducerManager {
     }
     /// adds producer to avaliable producers managed by this ProducerManager
     pub fn add_by_id(&mut self, id: TypeID, producer: Rc<RefCell<dyn DataProducer>>) {
-        println!("Added producer of id {}", id);
+        println!("Added producer size {} of id {}", producer.borrow().get_size(), id);
         self.producers.insert(id, producer);
     }
 

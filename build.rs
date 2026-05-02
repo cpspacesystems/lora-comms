@@ -1,8 +1,5 @@
 use std::{env, fs, path::Path};
 
-#[path = "src/codegen/mod.rs"]
-mod codegen;
-
 fn native() {
     println!("cargo:rustc-link-search=native=./lib/sx1302_hal/libloragw");
     println!("cargo:rustc-link-search=native=./lib/sx1302_hal/libtools");
@@ -23,12 +20,8 @@ fn main() {
         native();
     }
     
-    #[cfg(not(feature = "hardware_attached_full_system"))]
-    codegen::parse_data_def::parse_data_def("etc/DataDefination.vcsv");
-    
     #[cfg(feature = "hardware_attached_full_system")]
     {
-        codegen::parse_data_def::parse_data_def("etc/SimDataDef.vcsv");
         std::process::Command::new("cargo")
             .current_dir(format!("{}/src/simulation/binaries", source_dir))
             .args(["build"])

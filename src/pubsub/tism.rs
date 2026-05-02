@@ -7,21 +7,22 @@ pub struct TISMConnection;
 
 impl Connection for TISMConnection {
     type S = TISMSubscriber;
-    fn subscribe(&mut self, path: String) -> Self::S {
+    fn subscribe(&mut self, path: impl AsRef<str>) -> Self::S {
         TISMSubscriber {
-            sub: tism::dynamic::wait_and_open(path).unwrap()
+            sub: tism::dynamic::wait_and_open(path.as_ref()).unwrap()
         }
     }
     
     type SC = TISMSubscriber;
-    fn subscribe_on_change(&mut self, path: String) -> Self::S {
+    fn subscribe_on_change(&mut self, path: impl AsRef<str>) -> Self::S {
         Self::subscribe(self, path)
     }    
 
-    type P<const N: usize> = TISMPublisher<N>;
-    fn publish<const N: usize>(&mut self, path: String) -> Self::P<N> {
+    type P = TISMPublisher;
+    fn publish(&mut self, size: usize, path: impl AsRef<str>) -> Self::P {
         TISMPublisher {
-            publisher: tism::lazy::create(path)
+            publisher: tism::dynamic::create(path.as_ref(), size).unwrap(),
+            expected_size: size
         }
     }
 }
@@ -41,13 +42,14 @@ impl SubscriberOnChange for TISMSubscriber {
 }
 
 
-pub struct TISMPublisher<const N: usize> {
-    publisher: tism::lazy::LazyOwnedSharedMemory<[u8; N], String>
+pub struct TISMPublisher {
+    expected_size: usize,
+    publisher: tism::dynamic::OwnedDynamicSharedMemory
 }
-impl<const N: usize> Publisher<N> for TISMPublisher<{ N }> {
+impl Publisher for TISMPublisher {
     fn publish(&mut self, data: crate::common::BufferType) -> Result<(), crate::errors::AnyError> {
-        if data.len() != N {
-            return Err(errors::InvalidData(format!("Expected {} bytes, got {}", data.len(), N)).into());
+        if data.len() != self.expected_size {
+            return Err(errors::InvalidData(format!("Expected {} bytes, got {}", self.expected_size, data.len())).into());
         }
         
         self.publisher.write(data.try_into().unwrap())?;

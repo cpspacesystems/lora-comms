@@ -12,7 +12,7 @@ fn main() {
     let mut generator = DataSource::new(size);
 
     // let mut tism = tism::create(path.clone(), generator.generate())
-    let mut tism = tism::dynamic::create_owned_sized(path.clone(), generator.generate())
+    let mut tism = tism::dynamic::create(path.clone(), size)
         .expect("Should be able to create TISM allocation!");
 
     println!("Made tism allocation {} of size {}", path, size);

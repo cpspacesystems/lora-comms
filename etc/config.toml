@@ -1,5 +1,25 @@
 
 [[rocket_to_ground]]
-rate = "Fixed1Hz"
+rate = "1Hz"
+size = 20
+source_network = "TISM"
+source_path = "tom_test_1"
+destination_network = "TISM"
+destination_path = "ground_test_1"
+
+
+[[rocket_to_ground]]
+rate = "ASAP"
+size = 100
+source_network = "TISM"
+source_path = "tom_test_2"
+destination_network = "TISM"
+destination_path = "ground_test_2"
 
 [[ground_to_rocket]]
+rate = "OnChange"
+size = 4
+source_network = "TISM"
+source_path = "tom_test_3"
+destination_network = "TISM"
+destination_path = "ground_test_3"

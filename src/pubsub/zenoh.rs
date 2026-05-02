@@ -4,50 +4,50 @@ use zenoh::{Config, Wait, config, sample::Sample};
 
 use crate::pubsub::{Connection, Publisher, Subscriber, SubscriberOnChange};
 
-pub struct ZenohConnection<'a> { 
-    _marker: PhantomData<&'a Self>, 
+pub struct ZenohConnection { 
+    // _marker: PhantomData<&'a Self>, 
     session: zenoh::Session
 }
-impl ZenohConnection<'_> {
+impl ZenohConnection {
     pub fn new() -> Self {
         ZenohConnection {
-            _marker: PhantomData,
+            // _marker: PhantomData,
             session: zenoh::open(Config::default()).wait().unwrap(),
         }
     }
 }
-impl<'a> Connection for ZenohConnection<'a> {
+impl Connection for ZenohConnection {
     type S = ZenohSubscriber;
-    fn subscribe(&mut self, path: String) -> Self::S {
+    fn subscribe(&mut self, path: impl AsRef<str>) -> Self::S {
         ZenohSubscriber {
-            subscriber: self.session.declare_subscriber(path)
+            subscriber: self.session.declare_subscriber(path.as_ref())
                 .with(zenoh::handlers::RingChannel::new(1))
                 .wait().unwrap(),
         }
     }
 
     type SC = ZenohOnChangeSubscriber;
-    fn subscribe_on_change(&mut self, path: String) -> Self::SC {
+    fn subscribe_on_change(&mut self, path: impl AsRef<str>) -> Self::SC {
         ZenohOnChangeSubscriber {
-            subscriber: self.session.declare_subscriber(path)
+            subscriber: self.session.declare_subscriber(path.as_ref())
                 .with(zenoh::handlers::RingChannel::new(1))
                 .wait().unwrap(),
             last: None
         }
     }
 
-    type P<const N: usize> = ZenohPublisher<'a, N>;
-    fn publish<const N: usize>(&mut self, path: String) -> Self::P<N> {
+    type P = ZenohPublisher;
+    fn publish(&mut self, _size: usize, path: impl AsRef<str>) -> Self::P {
         ZenohPublisher {
-            publisher: self.session.declare_publisher(path).wait().unwrap(),
+            publisher: self.session.declare_publisher(path.as_ref().to_owned()).wait().unwrap(),
         }
     }
 }
 
-pub struct ZenohPublisher<'a, const N: usize> {
-    publisher: zenoh::pubsub::Publisher<'a>
+pub struct ZenohPublisher {
+    publisher: zenoh::pubsub::Publisher<'static>,
 }
-impl<const N: usize> Publisher<N> for ZenohPublisher<'_, N> {
+impl Publisher for ZenohPublisher {
     fn publish(&mut self, data: crate::common::BufferType) -> Result<(), crate::errors::AnyError> {
         self.publisher.put(data).wait()?;
         Ok(())

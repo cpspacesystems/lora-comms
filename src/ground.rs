@@ -21,10 +21,6 @@ mod ground_config;
 mod simulation;
 mod config;
 
-mod codegen {
-    include!{concat!(env!("OUT_DIR"), "/codegen_ground_to_rocket.rs")}
-}
-
 fn main() {
     println!("CPSS - LoRa Ground Communication Node");
 
@@ -36,8 +32,18 @@ fn main() {
     let mut consumer_mgmt = ConsumerManager::new();
     
     #[cfg(any(not(any(test, feature = "simulation")), feature = "hardware_attached_full_system"))]
-    let (mut _tism, mut _zenoh) = codegen::codegen_initialize_ground(&mut producer_mgmt, &mut consumer_mgmt, 
-        || TISMConnection, || ZenohConnection::new());
+    let (mut _tism, mut _zenoh) = {
+        let cfg =  config::parse("./etc/config.toml").unwrap();
+        let mut generator = config::generator::Generator::new(
+            || TISMConnection, || ZenohConnection::new());
+
+        generator.add_consuming_entries(&cfg.rocket_to_ground);
+        generator.add_producing_entries(&cfg.ground_to_rocket);
+
+        generator.finalize(&mut config::generator::IDProvider::new_ground(), 
+            &mut producer_mgmt, &mut consumer_mgmt)
+    };
+
     #[cfg(all(feature = "simulation", not(feature = "hardware_attached_full_system")))]
     {
         let altimeter1 = data_handlers::prng_data_source::PRNG::new(100).as_rc();

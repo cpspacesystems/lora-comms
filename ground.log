@@ -1,70 +1,1126 @@
 CPSS - LoRa Ground Communication Node
-HWAS: Spawn tism pub size of 4 at ground_signal1
-HWAS: Spawn tism pub size of 16 at ground_signal2
-Added producer of id 21
-Added producer of id 22
-Added Consumer of id 121
-Added Consumer of id 122
-Added Consumer of id 123
-Added Consumer of id 124
-Added Consumer of id 125
-Added Consumer of id 126
-Added Consumer of id 127
-Added Consumer of id 128
-Added Consumer of id 129
-Made tism allocation ground_signal1 of size 4
-Made tism allocation ground_signal2 of size 16
-Encountered error while decoding packets: Type id 1 does not exist in this world, the data is sent to the astroid belts.
-Encountered error while decoding packets: Type id 100 does not exist in this world, the data is sent to the astroid belts.
-Encountered error while decoding packets: Type id 80 does not exist in this world, the data is sent to the astroid belts.
-Encountered error while decoding packets: Type id 8 does not exist in this world, the data is sent to the astroid belts.
-Encountered error while decoding packets: Type id 1 does not exist in this world, the data is sent to the astroid belts.
-Encountered error while decoding packets: Type id 100 does not exist in this world, the data is sent to the astroid belts.
-Encountered error while decoding packets: Type id 80 does not exist in this world, the data is sent to the astroid belts.
-Encountered error while decoding packets: Type id 1 does not exist in this world, the data is sent to the astroid belts.
-Encountered error while decoding packets: Type id 8 does not exist in this world, the data is sent to the astroid belts.
-Encountered error while decoding packets: Type id 1 does not exist in this world, the data is sent to the astroid belts.
-Encountered error while decoding packets: Type id 100 does not exist in this world, the data is sent to the astroid belts.
-Encountered error while decoding packets: Type id 80 does not exist in this world, the data is sent to the astroid belts.
-Encountered error while decoding packets: Type id 1 does not exist in this world, the data is sent to the astroid belts.
-Encountered error while decoding packets: Type id 1 does not exist in this world, the data is sent to the astroid belts.
-Encountered error while decoding packets: Type id 100 does not exist in this world, the data is sent to the astroid belts.
-Encountered error while decoding packets: Type id 80 does not exist in this world, the data is sent to the astroid belts.
-Encountered error while decoding packets: Type id 1 does not exist in this world, the data is sent to the astroid belts.
-Encountered error while decoding packets: Type id 8 does not exist in this world, the data is sent to the astroid belts.
-Encountered error while decoding packets: Type id 1 does not exist in this world, the data is sent to the astroid belts.
-Encountered error while decoding packets: Type id 100 does not exist in this world, the data is sent to the astroid belts.
-Encountered error while decoding packets: Type id 80 does not exist in this world, the data is sent to the astroid belts.
-Encountered error while decoding packets: Type id 1 does not exist in this world, the data is sent to the astroid belts.
-Encountered error while decoding packets: Type id 1 does not exist in this world, the data is sent to the astroid belts.
-Encountered error while decoding packets: Type id 100 does not exist in this world, the data is sent to the astroid belts.
-Encountered error while decoding packets: Type id 80 does not exist in this world, the data is sent to the astroid belts.
-Encountered error while decoding packets: Type id 1 does not exist in this world, the data is sent to the astroid belts.
-Encountered error while decoding packets: Type id 8 does not exist in this world, the data is sent to the astroid belts.
-Encountered error while decoding packets: Type id 1 does not exist in this world, the data is sent to the astroid belts.
-Encountered error while decoding packets: Type id 100 does not exist in this world, the data is sent to the astroid belts.
-Encountered error while decoding packets: Type id 80 does not exist in this world, the data is sent to the astroid belts.
-Encountered error while decoding packets: Type id 1 does not exist in this world, the data is sent to the astroid belts.
-Encountered error while decoding packets: Type id 1 does not exist in this world, the data is sent to the astroid belts.
-Encountered error while decoding packets: Type id 100 does not exist in this world, the data is sent to the astroid belts.
-Encountered error while decoding packets: Type id 80 does not exist in this world, the data is sent to the astroid belts.
-Encountered error while decoding packets: Type id 1 does not exist in this world, the data is sent to the astroid belts.
-Encountered error while decoding packets: Type id 8 does not exist in this world, the data is sent to the astroid belts.
-Encountered error while decoding packets: Type id 1 does not exist in this world, the data is sent to the astroid belts.
-Encountered error while decoding packets: Type id 100 does not exist in this world, the data is sent to the astroid belts.
-Encountered error while decoding packets: Type id 80 does not exist in this world, the data is sent to the astroid belts.
-Encountered error while decoding packets: Type id 1 does not exist in this world, the data is sent to the astroid belts.
-Encountered error while decoding packets: Type id 1 does not exist in this world, the data is sent to the astroid belts.
-Encountered error while decoding packets: Type id 100 does not exist in this world, the data is sent to the astroid belts.
-Encountered error while decoding packets: Type id 80 does not exist in this world, the data is sent to the astroid belts.
-Encountered error while decoding packets: Type id 1 does not exist in this world, the data is sent to the astroid belts.
-Encountered error while decoding packets: Type id 8 does not exist in this world, the data is sent to the astroid belts.
-Encountered error while decoding packets: Type id 1 does not exist in this world, the data is sent to the astroid belts.
-Encountered error while decoding packets: Type id 100 does not exist in this world, the data is sent to the astroid belts.
-Encountered error while decoding packets: Type id 80 does not exist in this world, the data is sent to the astroid belts.
-Encountered error while decoding packets: Type id 1 does not exist in this world, the data is sent to the astroid belts.
-Encountered error while decoding packets: Type id 1 does not exist in this world, the data is sent to the astroid belts.
-Encountered error while decoding packets: Type id 100 does not exist in this world, the data is sent to the astroid belts.
-Encountered error while decoding packets: Type id 80 does not exist in this world, the data is sent to the astroid belts.
-Encountered error while decoding packets: Type id 1 does not exist in this world, the data is sent to the astroid belts.
-Encountered error while decoding packets: Type id 8 does not exist in this world, the data is sent to the astroid belts.
+HWAS: Spawn tism pub size of 4 at tom_test_3
+Added producer size 4 of id 121
+Added Consumer size 100 of id 21
+Added Consumer size 20 of id 22
+Made tism allocation tom_test_3 of size 4
+GOT: 1, true
+transmit
+fconstruct
+SEND: 2
+Outbound bitrate: 0.01 kbps per second.
+GOT: 2, true
+transmit
+fconstruct
+SEND: 3
+Outbound bitrate: 0.01 kbps per second.
+GOT: 3, true
+transmit
+fconstruct
+SEND: 4
+Outbound bitrate: 0.02 kbps per second.
+GOT: 4, true
+transmit
+fconstruct
+SEND: 5
+Outbound bitrate: 0.02 kbps per second.
+GOT: 5, true
+transmit
+fconstruct
+SEND: 6
+Outbound bitrate: 0.03 kbps per second.
+GOT: 6, true
+transmit
+fconstruct
+SEND: 7
+Outbound bitrate: 0.03 kbps per second.
+GOT: 7, true
+transmit
+fconstruct
+SEND: 8
+Outbound bitrate: 0.04 kbps per second.
+GOT: 8, true
+transmit
+fconstruct
+SEND: 9
+Outbound bitrate: 0.04 kbps per second.
+GOT: 9, true
+transmit
+fconstruct
+SEND: 10
+Outbound bitrate: 0.05 kbps per second.
+GOT: 10, true
+transmit
+fconstruct
+SEND: 11
+Outbound bitrate: 0.06 kbps per second.
+GOT: 11, true
+transmit
+fconstruct
+SEND: 12
+Outbound bitrate: 0.06 kbps per second.
+GOT: 12, true
+transmit
+fconstruct
+SEND: 13
+Outbound bitrate: 0.07 kbps per second.
+GOT: 13, true
+transmit
+fconstruct
+SEND: 14
+Outbound bitrate: 0.07 kbps per second.
+GOT: 14, true
+transmit
+fconstruct
+SEND: 15
+Outbound bitrate: 0.08 kbps per second.
+GOT: 15, true
+transmit
+fconstruct
+SEND: 16
+Outbound bitrate: 0.08 kbps per second.
+GOT: 16, true
+transmit
+fconstruct
+SEND: 17
+Outbound bitrate: 0.09 kbps per second.
+GOT: 17, true
+transmit
+fconstruct
+SEND: 18
+Outbound bitrate: 0.10 kbps per second.
+GOT: 18, true
+transmit
+fconstruct
+SEND: 19
+Outbound bitrate: 0.10 kbps per second.
+GOT: 19, true
+transmit
+fconstruct
+SEND: 20
+Outbound bitrate: 0.11 kbps per second.
+GOT: 20, true
+transmit
+fconstruct
+SEND: 21
+Outbound bitrate: 0.11 kbps per second.
+GOT: 21, true
+transmit
+fconstruct
+SEND: 22
+Outbound bitrate: 0.12 kbps per second.
+GOT: 22, true
+transmit
+fconstruct
+SEND: 23
+Outbound bitrate: 0.12 kbps per second.
+GOT: 23, true
+transmit
+fconstruct
+SEND: 24
+Outbound bitrate: 0.13 kbps per second.
+GOT: 24, true
+transmit
+fconstruct
+SEND: 25
+Outbound bitrate: 0.13 kbps per second.
+GOT: 25, true
+transmit
+fconstruct
+SEND: 26
+Outbound bitrate: 0.14 kbps per second.
+GOT: 26, true
+transmit
+fconstruct
+SEND: 27
+Outbound bitrate: 0.15 kbps per second.
+GOT: 27, true
+transmit
+fconstruct
+SEND: 28
+Outbound bitrate: 0.15 kbps per second.
+GOT: 28, true
+transmit
+fconstruct
+SEND: 29
+Outbound bitrate: 0.16 kbps per second.
+GOT: 29, true
+transmit
+fconstruct
+SEND: 30
+Outbound bitrate: 0.16 kbps per second.
+GOT: 30, true
+transmit
+fconstruct
+SEND: 31
+Outbound bitrate: 0.17 kbps per second.
+GOT: 31, true
+transmit
+fconstruct
+SEND: 32
+Outbound bitrate: 0.17 kbps per second.
+GOT: 32, true
+transmit
+fconstruct
+SEND: 33
+Outbound bitrate: 0.18 kbps per second.
+GOT: 33, true
+transmit
+fconstruct
+SEND: 34
+Outbound bitrate: 0.18 kbps per second.
+GOT: 34, true
+transmit
+fconstruct
+SEND: 35
+Outbound bitrate: 0.19 kbps per second.
+GOT: 35, true
+transmit
+fconstruct
+SEND: 36
+Outbound bitrate: 0.20 kbps per second.
+GOT: 36, true
+transmit
+fconstruct
+SEND: 37
+Outbound bitrate: 0.20 kbps per second.
+GOT: 37, true
+transmit
+fconstruct
+SEND: 38
+Outbound bitrate: 0.21 kbps per second.
+GOT: 38, true
+transmit
+fconstruct
+SEND: 39
+Outbound bitrate: 0.21 kbps per second.
+GOT: 39, true
+transmit
+fconstruct
+SEND: 40
+Outbound bitrate: 0.22 kbps per second.
+GOT: 40, true
+transmit
+fconstruct
+SEND: 41
+Outbound bitrate: 0.22 kbps per second.
+GOT: 41, true
+transmit
+fconstruct
+SEND: 42
+Outbound bitrate: 0.23 kbps per second.
+GOT: 42, true
+transmit
+fconstruct
+SEND: 43
+Outbound bitrate: 0.24 kbps per second.
+GOT: 43, true
+transmit
+fconstruct
+SEND: 44
+Outbound bitrate: 0.24 kbps per second.
+GOT: 44, true
+transmit
+fconstruct
+SEND: 45
+Outbound bitrate: 0.25 kbps per second.
+GOT: 45, true
+transmit
+fconstruct
+SEND: 46
+Outbound bitrate: 0.25 kbps per second.
+GOT: 46, true
+transmit
+fconstruct
+SEND: 47
+Outbound bitrate: 0.26 kbps per second.
+GOT: 47, true
+transmit
+fconstruct
+SEND: 48
+Outbound bitrate: 0.26 kbps per second.
+GOT: 48, true
+transmit
+fconstruct
+SEND: 49
+Outbound bitrate: 0.27 kbps per second.
+GOT: 49, true
+transmit
+fconstruct
+SEND: 50
+Outbound bitrate: 0.27 kbps per second.
+GOT: 50, true
+transmit
+fconstruct
+SEND: 51
+Outbound bitrate: 0.28 kbps per second.
+GOT: 51, true
+transmit
+fconstruct
+SEND: 52
+Outbound bitrate: 0.29 kbps per second.
+GOT: 52, true
+transmit
+fconstruct
+SEND: 53
+Outbound bitrate: 0.29 kbps per second.
+GOT: 53, true
+transmit
+fconstruct
+SEND: 54
+Outbound bitrate: 0.30 kbps per second.
+GOT: 54, true
+transmit
+fconstruct
+SEND: 55
+Outbound bitrate: 0.30 kbps per second.
+GOT: 55, true
+transmit
+fconstruct
+SEND: 56
+Outbound bitrate: 0.31 kbps per second.
+GOT: 56, true
+transmit
+fconstruct
+SEND: 57
+Outbound bitrate: 0.31 kbps per second.
+GOT: 57, true
+transmit
+fconstruct
+SEND: 58
+Outbound bitrate: 0.31 kbps per second.
+GOT: 58, true
+transmit
+fconstruct
+SEND: 59
+Outbound bitrate: 0.31 kbps per second.
+GOT: 59, true
+transmit
+fconstruct
+SEND: 60
+Outbound bitrate: 0.31 kbps per second.
+GOT: 60, true
+transmit
+fconstruct
+SEND: 61
+Outbound bitrate: 0.31 kbps per second.
+GOT: 61, true
+transmit
+fconstruct
+SEND: 62
+Outbound bitrate: 0.31 kbps per second.
+GOT: 62, true
+transmit
+fconstruct
+SEND: 63
+Outbound bitrate: 0.31 kbps per second.
+GOT: 63, true
+transmit
+fconstruct
+SEND: 64
+Outbound bitrate: 0.31 kbps per second.
+GOT: 64, true
+transmit
+fconstruct
+SEND: 65
+Outbound bitrate: 0.31 kbps per second.
+GOT: 65, true
+transmit
+fconstruct
+SEND: 66
+Outbound bitrate: 0.31 kbps per second.
+GOT: 66, true
+transmit
+fconstruct
+SEND: 67
+Outbound bitrate: 0.31 kbps per second.
+GOT: 67, true
+transmit
+fconstruct
+SEND: 68
+Outbound bitrate: 0.31 kbps per second.
+GOT: 68, true
+transmit
+fconstruct
+SEND: 69
+Outbound bitrate: 0.31 kbps per second.
+GOT: 69, true
+transmit
+fconstruct
+SEND: 70
+Outbound bitrate: 0.31 kbps per second.
+GOT: 70, true
+transmit
+fconstruct
+SEND: 71
+Outbound bitrate: 0.31 kbps per second.
+GOT: 71, true
+transmit
+fconstruct
+SEND: 72
+Outbound bitrate: 0.31 kbps per second.
+GOT: 72, true
+transmit
+fconstruct
+SEND: 73
+Outbound bitrate: 0.31 kbps per second.
+GOT: 73, true
+transmit
+fconstruct
+SEND: 74
+Outbound bitrate: 0.31 kbps per second.
+GOT: 74, true
+transmit
+fconstruct
+SEND: 75
+Outbound bitrate: 0.31 kbps per second.
+GOT: 75, true
+transmit
+fconstruct
+SEND: 76
+Outbound bitrate: 0.31 kbps per second.
+GOT: 76, true
+transmit
+fconstruct
+SEND: 77
+Outbound bitrate: 0.31 kbps per second.
+GOT: 77, true
+transmit
+fconstruct
+SEND: 78
+Outbound bitrate: 0.31 kbps per second.
+GOT: 78, true
+transmit
+fconstruct
+SEND: 79
+Outbound bitrate: 0.31 kbps per second.
+GOT: 79, true
+transmit
+fconstruct
+SEND: 80
+Outbound bitrate: 0.31 kbps per second.
+GOT: 80, true
+transmit
+fconstruct
+SEND: 81
+Outbound bitrate: 0.31 kbps per second.
+GOT: 81, true
+transmit
+fconstruct
+SEND: 82
+Outbound bitrate: 0.31 kbps per second.
+GOT: 82, true
+transmit
+fconstruct
+SEND: 83
+Outbound bitrate: 0.31 kbps per second.
+GOT: 83, true
+transmit
+fconstruct
+SEND: 84
+Outbound bitrate: 0.31 kbps per second.
+GOT: 84, true
+transmit
+fconstruct
+SEND: 85
+Outbound bitrate: 0.31 kbps per second.
+GOT: 85, true
+transmit
+fconstruct
+SEND: 86
+Outbound bitrate: 0.31 kbps per second.
+GOT: 86, true
+transmit
+fconstruct
+SEND: 87
+Outbound bitrate: 0.31 kbps per second.
+GOT: 87, true
+transmit
+fconstruct
+SEND: 88
+Outbound bitrate: 0.31 kbps per second.
+GOT: 88, true
+transmit
+fconstruct
+SEND: 89
+Outbound bitrate: 0.31 kbps per second.
+GOT: 89, true
+transmit
+fconstruct
+SEND: 90
+Outbound bitrate: 0.31 kbps per second.
+GOT: 90, true
+transmit
+fconstruct
+SEND: 91
+Outbound bitrate: 0.31 kbps per second.
+GOT: 91, true
+transmit
+fconstruct
+SEND: 92
+Outbound bitrate: 0.31 kbps per second.
+GOT: 92, true
+transmit
+fconstruct
+SEND: 93
+Outbound bitrate: 0.31 kbps per second.
+GOT: 93, true
+transmit
+fconstruct
+SEND: 94
+Outbound bitrate: 0.31 kbps per second.
+GOT: 94, true
+transmit
+fconstruct
+SEND: 95
+Outbound bitrate: 0.31 kbps per second.
+GOT: 95, true
+transmit
+fconstruct
+SEND: 96
+Outbound bitrate: 0.31 kbps per second.
+GOT: 96, true
+transmit
+fconstruct
+SEND: 97
+Outbound bitrate: 0.31 kbps per second.
+GOT: 97, true
+transmit
+fconstruct
+SEND: 98
+Outbound bitrate: 0.31 kbps per second.
+GOT: 98, true
+transmit
+fconstruct
+SEND: 99
+Outbound bitrate: 0.31 kbps per second.
+GOT: 99, true
+transmit
+fconstruct
+SEND: 100
+Outbound bitrate: 0.31 kbps per second.
+GOT: 100, true
+transmit
+fconstruct
+SEND: 101
+Outbound bitrate: 0.31 kbps per second.
+GOT: 101, true
+transmit
+fconstruct
+SEND: 102
+Outbound bitrate: 0.31 kbps per second.
+GOT: 102, true
+transmit
+fconstruct
+SEND: 103
+Outbound bitrate: 0.31 kbps per second.
+GOT: 103, true
+transmit
+fconstruct
+SEND: 104
+Outbound bitrate: 0.31 kbps per second.
+GOT: 104, true
+transmit
+fconstruct
+SEND: 105
+Outbound bitrate: 0.31 kbps per second.
+GOT: 105, true
+transmit
+fconstruct
+SEND: 106
+Outbound bitrate: 0.31 kbps per second.
+GOT: 106, true
+transmit
+fconstruct
+SEND: 107
+Outbound bitrate: 0.31 kbps per second.
+GOT: 107, true
+transmit
+fconstruct
+SEND: 108
+Outbound bitrate: 0.31 kbps per second.
+GOT: 108, true
+transmit
+fconstruct
+SEND: 109
+Outbound bitrate: 0.31 kbps per second.
+GOT: 109, true
+transmit
+fconstruct
+SEND: 110
+Outbound bitrate: 0.31 kbps per second.
+GOT: 110, true
+transmit
+fconstruct
+SEND: 111
+Outbound bitrate: 0.31 kbps per second.
+GOT: 111, true
+transmit
+fconstruct
+SEND: 112
+Outbound bitrate: 0.31 kbps per second.
+GOT: 112, true
+transmit
+fconstruct
+SEND: 113
+Outbound bitrate: 0.31 kbps per second.
+GOT: 113, true
+transmit
+fconstruct
+SEND: 114
+Outbound bitrate: 0.31 kbps per second.
+GOT: 114, true
+transmit
+fconstruct
+SEND: 115
+Outbound bitrate: 0.31 kbps per second.
+GOT: 115, true
+transmit
+fconstruct
+SEND: 116
+Outbound bitrate: 0.31 kbps per second.
+GOT: 116, true
+transmit
+fconstruct
+SEND: 117
+Outbound bitrate: 0.31 kbps per second.
+GOT: 117, true
+transmit
+fconstruct
+SEND: 118
+Outbound bitrate: 0.31 kbps per second.
+GOT: 118, true
+transmit
+fconstruct
+SEND: 119
+Outbound bitrate: 0.31 kbps per second.
+GOT: 119, true
+transmit
+fconstruct
+SEND: 120
+Outbound bitrate: 0.31 kbps per second.
+GOT: 120, true
+transmit
+fconstruct
+SEND: 121
+Outbound bitrate: 0.31 kbps per second.
+GOT: 121, true
+transmit
+fconstruct
+SEND: 122
+Outbound bitrate: 0.31 kbps per second.
+GOT: 122, true
+transmit
+fconstruct
+SEND: 123
+Outbound bitrate: 0.31 kbps per second.
+GOT: 123, true
+transmit
+fconstruct
+SEND: 124
+Outbound bitrate: 0.31 kbps per second.
+GOT: 124, true
+transmit
+fconstruct
+SEND: 125
+Outbound bitrate: 0.31 kbps per second.
+GOT: 125, true
+transmit
+fconstruct
+SEND: 126
+Outbound bitrate: 0.31 kbps per second.
+GOT: 126, true
+transmit
+fconstruct
+SEND: 127
+Outbound bitrate: 0.31 kbps per second.
+GOT: 127, true
+transmit
+fconstruct
+SEND: 0
+Outbound bitrate: 0.31 kbps per second.
+GOT: 0, true
+transmit
+fconstruct
+SEND: 1
+Outbound bitrate: 0.31 kbps per second.
+GOT: 1, true
+transmit
+fconstruct
+SEND: 2
+Outbound bitrate: 0.31 kbps per second.
+GOT: 2, true
+transmit
+fconstruct
+SEND: 3
+Outbound bitrate: 0.31 kbps per second.
+GOT: 3, true
+transmit
+fconstruct
+SEND: 4
+Outbound bitrate: 0.31 kbps per second.
+GOT: 4, true
+transmit
+fconstruct
+SEND: 5
+Outbound bitrate: 0.31 kbps per second.
+GOT: 5, true
+transmit
+fconstruct
+SEND: 6
+Outbound bitrate: 0.31 kbps per second.
+GOT: 6, true
+transmit
+fconstruct
+SEND: 7
+Outbound bitrate: 0.31 kbps per second.
+GOT: 7, true
+transmit
+fconstruct
+SEND: 8
+Outbound bitrate: 0.31 kbps per second.
+GOT: 8, true
+transmit
+fconstruct
+SEND: 9
+Outbound bitrate: 0.31 kbps per second.
+GOT: 9, true
+transmit
+fconstruct
+SEND: 10
+Outbound bitrate: 0.31 kbps per second.
+GOT: 10, true
+transmit
+fconstruct
+SEND: 11
+Outbound bitrate: 0.31 kbps per second.
+GOT: 11, true
+transmit
+fconstruct
+SEND: 12
+Outbound bitrate: 0.31 kbps per second.
+GOT: 12, true
+transmit
+fconstruct
+SEND: 13
+Outbound bitrate: 0.31 kbps per second.
+GOT: 13, true
+transmit
+fconstruct
+SEND: 14
+Outbound bitrate: 0.31 kbps per second.
+GOT: 14, true
+transmit
+fconstruct
+SEND: 15
+Outbound bitrate: 0.31 kbps per second.
+GOT: 15, true
+transmit
+fconstruct
+SEND: 16
+Outbound bitrate: 0.31 kbps per second.
+GOT: 16, true
+transmit
+fconstruct
+SEND: 17
+Outbound bitrate: 0.31 kbps per second.
+GOT: 17, true
+transmit
+fconstruct
+SEND: 18
+Outbound bitrate: 0.31 kbps per second.
+GOT: 18, true
+transmit
+fconstruct
+SEND: 19
+Outbound bitrate: 0.31 kbps per second.
+GOT: 19, true
+transmit
+fconstruct
+SEND: 20
+Outbound bitrate: 0.31 kbps per second.
+GOT: 20, true
+transmit
+fconstruct
+SEND: 21
+Outbound bitrate: 0.31 kbps per second.
+GOT: 21, true
+transmit
+fconstruct
+SEND: 22
+Outbound bitrate: 0.31 kbps per second.
+GOT: 22, true
+transmit
+fconstruct
+SEND: 23
+Outbound bitrate: 0.31 kbps per second.
+GOT: 23, true
+transmit
+fconstruct
+SEND: 24
+Outbound bitrate: 0.31 kbps per second.
+GOT: 24, true
+transmit
+fconstruct
+SEND: 25
+Outbound bitrate: 0.31 kbps per second.
+GOT: 25, true
+transmit
+fconstruct
+SEND: 26
+Outbound bitrate: 0.31 kbps per second.
+GOT: 26, true
+transmit
+fconstruct
+SEND: 27
+Outbound bitrate: 0.31 kbps per second.
+GOT: 27, true
+transmit
+fconstruct
+SEND: 28
+Outbound bitrate: 0.31 kbps per second.
+GOT: 28, true
+transmit
+fconstruct
+SEND: 29
+Outbound bitrate: 0.31 kbps per second.
+GOT: 29, true
+transmit
+fconstruct
+SEND: 30
+Outbound bitrate: 0.31 kbps per second.
+GOT: 30, true
+transmit
+fconstruct
+SEND: 31
+Outbound bitrate: 0.31 kbps per second.
+GOT: 31, true
+transmit
+fconstruct
+SEND: 32
+Outbound bitrate: 0.31 kbps per second.
+GOT: 32, true
+transmit
+fconstruct
+SEND: 33
+Outbound bitrate: 0.31 kbps per second.
+GOT: 33, true
+transmit
+fconstruct
+SEND: 34
+Outbound bitrate: 0.31 kbps per second.
+GOT: 34, true
+transmit
+fconstruct
+SEND: 35
+Outbound bitrate: 0.31 kbps per second.
+GOT: 35, true
+transmit
+fconstruct
+SEND: 36
+Outbound bitrate: 0.31 kbps per second.
+GOT: 36, true
+transmit
+fconstruct
+SEND: 37
+Outbound bitrate: 0.31 kbps per second.
+GOT: 37, true
+transmit
+fconstruct
+SEND: 38
+Outbound bitrate: 0.31 kbps per second.
+GOT: 38, true
+transmit
+fconstruct
+SEND: 39
+Outbound bitrate: 0.31 kbps per second.
+GOT: 39, true
+transmit
+fconstruct
+SEND: 40
+Outbound bitrate: 0.31 kbps per second.
+GOT: 40, true
+transmit
+fconstruct
+SEND: 41
+Outbound bitrate: 0.31 kbps per second.
+GOT: 41, true
+transmit
+fconstruct
+SEND: 42
+Outbound bitrate: 0.31 kbps per second.
+GOT: 42, true
+transmit
+fconstruct
+SEND: 43
+Outbound bitrate: 0.31 kbps per second.
+GOT: 43, true
+transmit
+fconstruct
+SEND: 44
+Outbound bitrate: 0.31 kbps per second.
+GOT: 44, true
+transmit
+fconstruct
+SEND: 45
+Outbound bitrate: 0.31 kbps per second.
+GOT: 45, true
+transmit
+fconstruct
+SEND: 46
+Outbound bitrate: 0.31 kbps per second.
+GOT: 46, true
+transmit
+fconstruct
+SEND: 47
+Outbound bitrate: 0.31 kbps per second.
+GOT: 47, true
+transmit
+fconstruct
+SEND: 48
+Outbound bitrate: 0.31 kbps per second.
+GOT: 48, true
+transmit
+fconstruct
+SEND: 49
+Outbound bitrate: 0.31 kbps per second.
+GOT: 49, true
+transmit
+fconstruct
+SEND: 50
+Outbound bitrate: 0.31 kbps per second.
+GOT: 50, true
+transmit
+fconstruct
+SEND: 51
+Outbound bitrate: 0.31 kbps per second.
+GOT: 51, true
+transmit
+fconstruct
+SEND: 52
+Outbound bitrate: 0.31 kbps per second.
+GOT: 52, true
+transmit
+fconstruct
+SEND: 53
+Outbound bitrate: 0.31 kbps per second.
+GOT: 53, true
+transmit
+fconstruct
+SEND: 54
+Outbound bitrate: 0.31 kbps per second.
+GOT: 54, true
+transmit
+fconstruct
+SEND: 55
+Outbound bitrate: 0.31 kbps per second.
+GOT: 55, true
+transmit
+fconstruct
+SEND: 56
+Outbound bitrate: 0.31 kbps per second.
+GOT: 56, true
+transmit
+fconstruct
+SEND: 57
+Outbound bitrate: 0.30 kbps per second.
+GOT: 57, true
+transmit
+fconstruct
+SEND: 58
+Outbound bitrate: 0.30 kbps per second.
+GOT: 58, true
+transmit
+fconstruct
+SEND: 59
+Outbound bitrate: 0.30 kbps per second.
+GOT: 59, true
+transmit
+fconstruct
+SEND: 60
+Outbound bitrate: 0.30 kbps per second.
+GOT: 60, true
+transmit
+fconstruct
+SEND: 61
+Outbound bitrate: 0.30 kbps per second.
+GOT: 61, true
+transmit
+fconstruct
+SEND: 62
+Outbound bitrate: 0.30 kbps per second.
+GOT: 62, true
+transmit
+fconstruct
+SEND: 63
+Outbound bitrate: 0.31 kbps per second.
+GOT: 63, true
+transmit
+fconstruct
+SEND: 64
+Outbound bitrate: 0.31 kbps per second.
+GOT: 64, true
+transmit
+fconstruct
+SEND: 65
+Outbound bitrate: 0.31 kbps per second.
+GOT: 65, true
+transmit
+fconstruct
+SEND: 66
+Outbound bitrate: 0.31 kbps per second.
+GOT: 66, true
+transmit
+fconstruct
+SEND: 67
+Outbound bitrate: 0.31 kbps per second.
+GOT: 67, true
+transmit
+fconstruct
+SEND: 68
+Outbound bitrate: 0.31 kbps per second.
+GOT: 68, true
+transmit
+fconstruct
+SEND: 69
+Outbound bitrate: 0.31 kbps per second.
+GOT: 69, true
+transmit
+fconstruct
+SEND: 70
+Outbound bitrate: 0.30 kbps per second.
+GOT: 70, true
+transmit
+fconstruct
+SEND: 71
+Outbound bitrate: 0.30 kbps per second.
+GOT: 71, true
+transmit
+fconstruct
+SEND: 72
+Outbound bitrate: 0.30 kbps per second.
+GOT: 72, true
+transmit
+fconstruct
+SEND: 73
+Outbound bitrate: 0.31 kbps per second.
+GOT: 73, true
+transmit
+fconstruct
+SEND: 74
+Outbound bitrate: 0.31 kbps per second.
+GOT: 74, true
+transmit
+fconstruct
+SEND: 75
+Outbound bitrate: 0.31 kbps per second.
+GOT: 75, true
+transmit
+fconstruct
+SEND: 76
+Outbound bitrate: 0.31 kbps per second.
+GOT: 76, true
+transmit
+fconstruct
+SEND: 77
+Outbound bitrate: 0.30 kbps per second.
+GOT: 77, true
+transmit
+fconstruct
+SEND: 78
+Outbound bitrate: 0.31 kbps per second.
+GOT: 78, true
+transmit
+fconstruct
+SEND: 79
+Outbound bitrate: 0.31 kbps per second.
+GOT: 79, true
+transmit
+fconstruct
+SEND: 80
+Outbound bitrate: 0.31 kbps per second.
+GOT: 80, true
+transmit
+fconstruct
+SEND: 81
+Outbound bitrate: 0.31 kbps per second.
+GOT: 81, true
+transmit
+fconstruct
+SEND: 82
+Outbound bitrate: 0.30 kbps per second.
+GOT: 82, true
+transmit
+fconstruct
+SEND: 83
+Outbound bitrate: 0.30 kbps per second.
+GOT: 83, true
+transmit
+fconstruct
+SEND: 84
+Outbound bitrate: 0.30 kbps per second.
+GOT: 84, true
+transmit
+fconstruct
+SEND: 85
+Outbound bitrate: 0.31 kbps per second.
+GOT: 85, true
+transmit
+fconstruct
+SEND: 86
+Outbound bitrate: 0.31 kbps per second.
+GOT: 86, true
+transmit
+fconstruct
+SEND: 87
+Outbound bitrate: 0.31 kbps per second.
+GOT: 87, true
+transmit
+fconstruct
+SEND: 88
+Outbound bitrate: 0.30 kbps per second.
+GOT: 88, true
+transmit
+fconstruct
+SEND: 89
+Outbound bitrate: 0.31 kbps per second.
+GOT: 89, true
+transmit
+fconstruct
+SEND: 90
+Outbound bitrate: 0.31 kbps per second.
+GOT: 90, true
+transmit
+fconstruct
+SEND: 91
+Outbound bitrate: 0.30 kbps per second.
+GOT: 91, true
+transmit
+fconstruct
+SEND: 92
+Outbound bitrate: 0.30 kbps per second.
+GOT: 92, true
+transmit
+fconstruct
+SEND: 93
+Outbound bitrate: 0.30 kbps per second.
+GOT: 93, true
+transmit
+fconstruct
+SEND: 94
+Outbound bitrate: 0.30 kbps per second.
+GOT: 94, true
+transmit
+fconstruct
+SEND: 95
+Outbound bitrate: 0.30 kbps per second.
+GOT: 95, true
+transmit
+fconstruct
+SEND: 96
+Outbound bitrate: 0.30 kbps per second.
+GOT: 96, true
+transmit
+fconstruct
+SEND: 97
+Outbound bitrate: 0.30 kbps per second.

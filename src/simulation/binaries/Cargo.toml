@@ -4,8 +4,8 @@ version = "0.1.0"
 edition = "2024"
 
 [dependencies]
-# tism = { git = "https://github.com/cpspacesystems/tism", version = "0.1.0" }
-tism = { path = "../../../temp/tism" }
+tism = { git = "https://github.com/cpspacesystems/tism", version = "0.1.0" }
+# tism = { path = "../../../temp/tism" }
 zenoh = "1.9.0"
 
 [lib]

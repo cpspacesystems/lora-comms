@@ -6,13 +6,13 @@ pub mod zenoh;
 pub mod tism;
 
 pub trait Connection { 
-    type S: Subscriber; type SC: SubscriberOnChange; type P<const N: usize>: Publisher<N>;
-    fn subscribe(&mut self, path: String) -> Self::S;
-    fn subscribe_on_change(&mut self, path: String) -> Self::SC;
-    fn publish<const N: usize>(&mut self, path: String) -> Self::P<N>;
+    type S: Subscriber; type SC: SubscriberOnChange; type P: Publisher;
+    fn subscribe(&mut self, path: impl AsRef<str>) -> Self::S;
+    fn subscribe_on_change(&mut self, path: impl AsRef<str>) -> Self::SC;
+    fn publish(&mut self, size: usize, path: impl AsRef<str>) -> Self::P;
 }
 
-pub trait Publisher<const N: usize> {
+pub trait Publisher {
     fn publish(&mut self, data: BufferType) -> Result<(), AnyError>;
 }
 

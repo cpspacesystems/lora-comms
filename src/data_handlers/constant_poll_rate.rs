@@ -2,16 +2,16 @@ use std::{cell::RefCell, rc::Rc, time};
 
 use crate::{common::BufferType, data_handlers::{DataConsumer, DataProducer}, errors, pubsub};
 
-pub struct Producer<const NP: usize> {
+pub struct Producer {
     rate: time::Duration,
-    producers: [Rc<RefCell<dyn DataProducer>>; NP],
+    producers: Vec<Rc<RefCell<dyn DataProducer>>>,
     total_size: usize,
 
     last_pulled_time: time::Instant,
 }
 
-impl<const NP: usize> Producer<NP> {
-    pub fn new(rate: time::Duration, producers: [Rc<RefCell<dyn DataProducer>>; NP]) -> Self {
+impl Producer {
+    pub fn new(rate: time::Duration, producers: Vec<Rc<RefCell<dyn DataProducer>>>) -> Self {
         let total_size: usize = producers.iter()
             .map(|x| x.borrow().get_size())
             .sum();
@@ -20,14 +20,14 @@ impl<const NP: usize> Producer<NP> {
     }
 }
 
-impl<const NP: usize> DataProducer for Producer<NP> {
+impl DataProducer for Producer {
     fn produce(&mut self) -> Result<Option<crate::common::BufferType>, crate::errors::AnyError> {
         let now = time::Instant::now();
         if now.saturating_duration_since(self.last_pulled_time) < self.rate {
             return Ok(None);
         }
 
-        let mut data = BufferType::with_capacity(NP);
+        let mut data = BufferType::with_capacity(self.total_size);
         for rc in &self.producers {
             let mut p = rc.try_borrow_mut()?;
             match p.produce() {
@@ -53,23 +53,23 @@ impl<const NP: usize> DataProducer for Producer<NP> {
     }
 }
 
-pub struct Consumer<const NP: usize> {
+pub struct Consumer {
     rate: time::Duration,
-    consumers: [Rc<RefCell<dyn DataConsumer>>; NP],
+    consumers: Vec<Rc<RefCell<dyn DataConsumer>>>,
     total_size: usize,
 }
 
-impl<const NP: usize> Consumer<NP> {
-    pub fn new(rate: time::Duration, producers: [Rc<RefCell<dyn DataConsumer>>; NP]) -> Self {
-        let total_size: usize = producers.iter()
+impl Consumer {
+    pub fn new(rate: time::Duration, consumers: Vec<Rc<RefCell<dyn DataConsumer>>>) -> Self {
+        let total_size: usize = consumers.iter()
             .map(|x| x.borrow().get_size())
             .sum();
 
-        Self { rate, consumers: producers, total_size }
+        Self { rate, consumers, total_size }
     }
 }
 
-impl<const NP: usize> DataConsumer for Consumer<NP> {
+impl DataConsumer for Consumer {
     fn consume(&mut self, mut buffer: BufferType) -> Result<(), errors::AnyError> {
         if buffer.len() != self.get_size() {
             return Err(errors::InvalidData(format!("ConstantPollRate consumer expected data size of {}, but got {}", self.total_size, buffer.len())).into());

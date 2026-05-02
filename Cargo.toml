@@ -11,8 +11,8 @@ thiserror = "2.0.17"
 tokio = { version = "1.48.0", features = ["macros", "process"] }
 zenoh = "1.6.2"
 bitint = "0.1.1"
-# tism = { git = "https://github.com/cpspacesystems/tism", version = "0.1.0" }
-tism = { path = "temp/tism" }
+tism = { git = "https://github.com/cpspacesystems/tism", version = "0.1.0" }
+# tism = { path = "temp/tism" }
 hex = "0.4.3"
 toml = "1.1.2"
 serde = { version = "1.0.228", features = ["serde_derive"] }

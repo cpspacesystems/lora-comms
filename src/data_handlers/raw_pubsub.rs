@@ -2,23 +2,25 @@ use crate::{data_handlers::{DataConsumer, DataProducer}, errors, pubsub::{Publis
 
 
 
-pub struct Producer<const N: usize, T: Subscriber> {
-    sub: T
+pub struct Producer<T: Subscriber> {
+    sub: T,
+    size: usize,
 }
-impl<const N: usize, T: Subscriber> Producer<N, T> {
-    pub fn new(subscriber: T) -> Producer<N, T> {
+impl<T: Subscriber> Producer<T> {
+    pub fn new(size: usize, subscriber: T) -> Producer<T> {
         Producer {
+            size,
             sub: subscriber
         }
     }
 }
 
-impl<const N: usize, T: Subscriber> DataProducer for Producer<N, T> {
+impl<T: Subscriber> DataProducer for Producer<T> {
     fn produce(&mut self) -> Result<Option<crate::common::BufferType>, crate::errors::AnyError> {
         if let Some(d) = self.sub.get()? {
-            if d.len() != N { 
+            if d.len() != self.size { 
                 println!("{:?}", d);
-                return Err(errors::InvalidData(format!("Raw Pubsub expected data size of {}, but got {}!", N, d.len())).into()); 
+                return Err(errors::InvalidData(format!("Raw Pubsub expected data size of {}, but got {}!", self.size, d.len())).into()); 
             }
             Ok(Some(d))
         } else {
@@ -27,25 +29,26 @@ impl<const N: usize, T: Subscriber> DataProducer for Producer<N, T> {
     }
     
     fn get_size(&self) -> usize {
-        N
+        self.size
     }
 }
 
 #[derive(Clone)]
-pub struct Consumer<const N: usize, T: Publisher<N>> {
+pub struct Consumer<T: Publisher> {
+    size: usize,
     publisher: T
 }
-impl<const N: usize, T: Publisher<N>> Consumer<N, T> {
-    pub fn new(publisher: T) -> Consumer<N, T> {
-        return Consumer { publisher };
+impl<T: Publisher> Consumer<T> {
+    pub fn new(size: usize, publisher: T) -> Consumer<T> {
+        return Consumer { size, publisher };
     }
 }
-impl<const N: usize, T: Publisher<N>> DataConsumer for Consumer<N, T> {
+impl<T: Publisher> DataConsumer for Consumer<T> {
     fn consume(&mut self, buffer: crate::common::BufferType) -> Result<(), crate::errors::AnyError> {
         self.publisher.publish(buffer)
     }
 
     fn get_size(&self) -> usize {
-        N
+        self.size
     }
 }

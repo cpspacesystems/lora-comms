@@ -42,21 +42,21 @@ impl<const N: usize, T: pubsub::Subscriber> DataProducer for Producer<N, T> {
     }
 }
 
-pub struct Consumer<const N: usize, T: pubsub::Publisher<N>> {
+pub struct Consumer<T: pubsub::Publisher> {
     publisher: T,
 }
-impl<const N: usize, T: pubsub::Publisher<N>> Consumer<N, T> {
-    pub fn new(publisher: T) -> Consumer<N, T> {
+impl<T: pubsub::Publisher> Consumer<T> {
+    pub fn new(publisher: T) -> Consumer<T> {
         return Consumer { publisher };
     }
 }
-impl<const N: usize, T: pubsub::Publisher<N>> DataConsumer for Consumer<N, T> {
+impl<T: pubsub::Publisher> DataConsumer for Consumer<T> {
     fn consume(&mut self, buffer: BufferType) -> Result<(), AnyError> {
         self.publisher.publish(buffer)?;
         Ok(())
     }
 
     fn get_size(&self) -> usize {
-        N
+        20
     }
 }
