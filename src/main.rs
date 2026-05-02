@@ -16,6 +16,8 @@ mod network;
 mod common_config;
 mod simulation;
 mod config;
+mod lr1121;
+mod lr1121wrapper;
 
 fn main() {
     println!("CPSS - LoRa Rocket Communication Node");
