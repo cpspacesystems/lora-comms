@@ -1,5 +1,5 @@
-use std::time;
-use crate::{common::{BufferType, SpreadFactor, LoraCodeRate}, common_config::UPLINK_TRANSMIT_TIMEOUT_PERIOD, errors::{self, AnyError}, lr1121wrapper::{Context, begin, end, getSNR, init, receive, setCodingRate, setFrequency, setSpreadingFactor, transmit}, network::{NetworkRadio, SendError}, packet::{self, OutgoingPacketConfig, PacketMetadata, ReceivedPacket}};
+use std::{ptr::null, time};
+use crate::{common::{BufferType, SpreadFactor, LoraCodeRate}, common_config::{UPLINK_TRANSMIT_TIMEOUT_PERIOD, LORA_125KHZ_CH0, LORA_PREAMBLE_LENGTH, INITIAL_CODE_RATE}, errors::{self, AnyError}, lr1121wrapper::{Context, begin, end, getSNR, init, receive, setCodingRate, setFrequency, setSpreadingFactor, transmit}, network::{NetworkRadio, SendError}, packet::{self, OutgoingPacketConfig, PacketMetadata, ReceivedPacket}};
 
 pub struct lr1121Config {
     pub spi_channel:    u8,
@@ -32,28 +32,33 @@ struct lr1121 {
 
 impl lr1121 {
     pub fn new() -> Self {
+        let config = lr1121Config {
+            spi_channel: 0, spi_speed: 16_000_000, spi_device: 7, 
+            gpio_device: 4, cs: 8, irq: 0, 
+            rst: 0, busy: 0, dio8: 0, 
+            freq: (LORA_125KHZ_CH0) as f32, bw: 125.0, sf: 0, 
+            cr: 0x1, sync_word: 0, power: 22,
+            preamble_length: LORA_PREAMBLE_LENGTH, tcxo_voltage: 3.3, timeout: 0
+        }; 
+        
         let new_ctx = unsafe {
             init(
-                0,    //spiChannel
-                0,      //spiSpeed
-                0,     //spiDevice
-                0,    //gpioDevice
-                0,            //CS
-                0,           //IRQ
-                0,           //RST
-                0,          //BUSY
-                0           //DIO8
+                config.spi_channel,    //spiChannel
+                config.spi_speed,      //spiSpeed
+                config.spi_device,     //spiDevice
+                config.gpio_device,    //gpioDevice
+                config.cs,            //CS
+                config.irq,           //IRQ
+                config.rst,           //RST
+                config.busy,          //BUSY
+                config.dio8          //DIO8
             )
         };
+        
+        
         Self {
             ctx: new_ctx,
-            config: lr1121Config {
-                spi_channel: 0, spi_speed: 0, spi_device: 0, 
-                gpio_device: 0, cs: 0, irq: 0, 
-                rst: 0, busy: 0, dio8: 0, 
-                freq: 0.0, bw: 0.0, sf: 0, 
-                cr: 0, sync_word: 0, power: 22, 
-                preamble_length: 0, tcxo_voltage: 3.3, timeout: 0},
+            config, 
             currentlyRec: false
         }
     }
@@ -148,11 +153,6 @@ impl NetworkRadio for lr1121 {
             crate::packet::OutgoingPacketModulation::LoRa { spread_factor, coderate, .. } => unsafe {
                 setSpreadingFactor(self.ctx, spread_factor.into(), false);
                 setCodingRate(self.ctx, coderate as u8, false);
-
-
-
-// check with Alvin on longInterleave
-
                 setFrequency(self.ctx, packet_config.freq_hz as f32);
             },
             _ => return Err("Unsupported modulation".into())
@@ -186,15 +186,3 @@ impl NetworkRadio for lr1121 {
         Ok(self.currentlyRec)
     }
 }
-
-//end and destory radio and context??
-
-
-
-
-
-
-
-////// add snr to radiolib
-//
-// add snr
