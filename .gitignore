@@ -8,7 +8,7 @@
 # source compiled dependencies 
 /lib/SWDR001
 /lib/sx1302_hal
-
+/lib/RadioLib
 
 *.lock
 *.log
