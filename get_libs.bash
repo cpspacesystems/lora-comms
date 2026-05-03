@@ -9,17 +9,21 @@ cd "${SCRIPT_DIR}"
 mkdir -p ./lib
 cd ./lib
 
-echo "Downloading LR11XX Driver"
-git clone https://github.com/Lora-net/SWDR001
-cd SWDR001
-git checkout f99fe41538e351c4c0d1975a4138532fe7869d65
-echo "Building LR11XX Driver"
-cmake -S . -B ./build
-cmake --build ./build --config Release -j $(nrpoc)
-echo "LR11XX driver built"
+# echo "Downloading LR11XX Driver"
+# git clone https://github.com/Lora-net/SWDR001
+# cd SWDR001
+# git checkout f99fe41538e351c4c0d1975a4138532fe7869d65
+# echo "Building LR11XX Driver"
+# cmake -S . -B ./build
+# cmake --build ./build --config Release -j $(nrpoc)
+# echo "LR11XX driver built"
 
 cd "${SCRIPT_DIR}/lib"
+echo "Downloading RadioLib (With Customizations specfic to CPSS)"
+git clone https://github.com/cpspacesystems/lora-comms.git -b radioLib RadioLib
+cd RadioLib
 
+cd "${SCRIPT_DIR}/lib"
 echo "Downloading sx1302 driver"
 git clone https://github.com/Lora-net/sx1302_hal
 cd sx1302_hal

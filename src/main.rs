@@ -1,6 +1,7 @@
 use std::{thread::sleep, time::Duration};
 
 use crate::common::AsRc;
+use crate::lr1121::LR1121;
 // #[cfg(all(not(test), feature = "simulation"))]
 use crate::network::simulated_radio::SimulatedRadio;
 use crate::pubsub::Connection;
@@ -17,7 +18,6 @@ mod common_config;
 mod simulation;
 mod config;
 mod lr1121;
-mod lr1121wrapper;
 
 fn main() {
     println!("CPSS - LoRa Rocket Communication Node");
@@ -59,12 +59,11 @@ fn main() {
         &consumer_mgmt, &producer_mgmt,
     );
 
-    // configure sx1302
-    #[cfg(not(any(test, feature = "simulation")))]
-    let mut device = sx1302::backing::PhysicalDevice;
-    #[cfg(not(any(test, feature = "simulation")))]
-    let mut radio: SX1302<PhysicalDevice> = SX1302::new(ground_config::SX1302_CONFIG, &mut device);
-    // #[cfg(all(not(test), feature = "simulation"))]
+    // configure lr1121
+    // #[cfg(not(any(test, feature = "simulation")))]
+    let mut radio = LR1121::new();
+
+    #[cfg(all(not(test), feature = "simulation"))]
     let mut radio = SimulatedRadio::new(common_config::SIMULATION_ROCKET_ADDR.to_string(), common_config::SIMULATION_GROUND_ADDR.to_string());
 
     if let Err(e) = radio.configure() {

@@ -1,27 +1,20 @@
 use std::{env, fs, path::Path};
 
-fn native() {
-    println!("cargo:rustc-link-search=native=./lib/sx1302_hal/libloragw");
-    println!("cargo:rustc-link-search=native=./lib/sx1302_hal/libtools");
+fn add_linker_search_paths(lib_root: &str) {
+    println!("cargo:rustc-link-search=native={}/lib/sx1302_hal/libloragw", lib_root);
+    println!("cargo:rustc-link-search=native={}/lib/sx1302_hal/libtools", lib_root);
+    println!("cargo:rustc-link-search=native={}/lib/lr1121_radiolib_bridge/build", lib_root);
+    println!("cargo:rustc-link-search=native={}/lib/lr1121_radiolib_bridge/build/RadioLib", lib_root);
 }
 
-fn cross() {
-    println!("cargo:rustc-link-search=native=./cross/lib/sx1302_hal/libloragw");
-    println!("cargo:rustc-link-search=native=./cross/lib/sx1302_hal/libtools");
-}
 fn main() {
     let source_dir = std::env::var("CARGO_MANIFEST_DIR").expect("Expected source dir to be set!");
     let out_dir = env::var_os("OUT_DIR").expect("OUT_DIR not set!");
-    println!("cargo:rustc-link-search=native=./");
-    //println!("cargo:rustc-link-search=native=/home/adam/Desktop/LR1121Rust/lora-comms");
-    // println!("cargo:rustc-link-lib=static=lora_full");
-    // println!("cargo:rustc-link-lib=dylib=stdc++");
-    // println!("cargo:rustc-link-lib=dylib=lgpio");
 
     if let Ok(v) = env::var("CROSS") && v.trim() == "1" {
-        cross();
+        add_linker_search_paths("./cross");
     } else {
-        native();
+        add_linker_search_paths(".");
     }
     
     #[cfg(feature = "hardware_attached_full_system")]

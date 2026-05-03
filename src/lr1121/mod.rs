@@ -1,38 +1,41 @@
 use std::{ptr::null, time};
-use crate::{common::{BufferType, SpreadFactor, LoraCodeRate}, common_config::{UPLINK_TRANSMIT_TIMEOUT_PERIOD, LORA_125KHZ_CH0, LORA_PREAMBLE_LENGTH, INITIAL_CODE_RATE}, errors::{self, AnyError}, lr1121wrapper::{Context, begin, end, getSNR, init, receive, setCodingRate, setFrequency, setSpreadingFactor, transmit}, network::{NetworkRadio, SendError}, packet::{self, OutgoingPacketConfig, PacketMetadata, ReceivedPacket}};
 
-pub struct lr1121Config {
-    pub spi_channel:    u8,
-    pub spi_speed:      u32,
-    pub spi_device:     u8,
-    pub gpio_device:    u8,
-    pub cs:             u32,
-    pub irq:            u32,
-    pub rst:            u32,
-    pub busy:           u32,
-    pub dio8:           u32,
+mod lr1121wrapper;
+use lr1121wrapper::{Context, begin, end, getSNR, init, receive, setCodingRate, setFrequency, setSpreadingFactor, transmit};
+use crate::{common::{BufferType, SpreadFactor, LoraCodeRate}, common_config::{UPLINK_TRANSMIT_TIMEOUT_PERIOD, LORA_125KHZ_CH0, LORA_PREAMBLE_LENGTH, INITIAL_CODE_RATE}, errors::{self, AnyError}, network::{NetworkRadio, SendError}, packet::{self, OutgoingPacketConfig, PacketMetadata, ReceivedPacket}};
 
-    pub freq:            f32,
-    pub bw:              f32,
-    pub sf:              u8,
-    pub cr:              u8,
-    pub sync_word:       u8,
-    pub power:           i8,
-    pub preamble_length: u16,
-    pub tcxo_voltage:    f32,
+pub struct LR1121Config {
+    spi_channel:    u8,
+    spi_speed:      u32,
+    spi_device:     u8,
+    gpio_device:    u8,
+    cs:             u32,
+    irq:            u32,
+    rst:            u32,
+    busy:           u32,
+    dio8:           u32,
 
-    pub timeout:         u16
+    freq:            f32,
+    bw:              f32,
+    sf:              u8,
+    cr:              u8,
+    sync_word:       u8,
+    power:           i8,
+    preamble_length: u16,
+    tcxo_voltage:    f32,
+
+    timeout:         u16
 }
 
-struct lr1121 {
+pub struct LR1121 {
     ctx: *mut  Context,
-    config: lr1121Config,
-    currentlyRec: bool,
+    config: LR1121Config,
+    currently_rec: bool,
 }
 
-impl lr1121 {
+impl LR1121 {
     pub fn new() -> Self {
-        let config = lr1121Config {
+        let config = LR1121Config {
             spi_channel: 0, spi_speed: 16_000_000, spi_device: 7, 
             gpio_device: 4, cs: 8, irq: 0, 
             rst: 0, busy: 0, dio8: 0, 
@@ -59,17 +62,13 @@ impl lr1121 {
         Self {
             ctx: new_ctx,
             config, 
-            currentlyRec: false
+            currently_rec: false
         }
     }
 }
 
-pub enum error {
-    error(i32),
-}
-
-impl NetworkRadio for lr1121 {
-    type ConfigureError = error;
+impl NetworkRadio for LR1121 {
+    type ConfigureError = AnyError;
     /// configure the raido
     fn configure(&mut self) -> Result<(), Self::ConfigureError> {
         let state = unsafe {
@@ -86,16 +85,16 @@ impl NetworkRadio for lr1121 {
             )
         };
         if state != 0 {
-            return Err(error::error(state));
+            return Err(format!("Failed to Configure LR1121 with error: {}", state).into());
         }
         println!("INFO LR1121: radio configuration finished");
         Ok(())
     }
         
-    type ReceiveError = error;
+    type ReceiveError = AnyError;
     /// receive packets from radio
     fn try_receive(&mut self) -> Result<Vec<ReceivedPacket>, Self::ReceiveError> {
-        self.currentlyRec = true;
+        self.currently_rec = true;
 
         let mut buffer = [0u8; 256]; 
         let data_ptr = buffer.as_mut_ptr();
@@ -135,10 +134,10 @@ impl NetworkRadio for lr1121 {
                 meta: metadata,
            }]; 
             println!("INFO LR1121: Got new packet: {:#?}", packets);
-            self.currentlyRec = false;
+            self.currently_rec = false;
             return Ok(packets);
         } else {
-            self.currentlyRec = false;
+            self.currently_rec = false;
             return Ok(Vec::new());
         }
         
@@ -183,6 +182,6 @@ impl NetworkRadio for lr1121 {
     }
     /// check if the radio is currently receiving
     fn is_currently_receiving(&mut self) -> Result<bool, AnyError> {
-        Ok(self.currentlyRec)
+        Ok(self.currently_rec)
     }
 }
