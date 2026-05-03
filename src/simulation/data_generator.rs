@@ -1,6 +1,4 @@
-pub mod config;
 
-pub mod sizes;
 
 pub struct DataSource {
     size: usize,
@@ -24,7 +22,15 @@ impl DataSource {
     }
 
     pub fn generate(&mut self) -> Vec<u8> {
-        (0..(self.size as _)).collect()
+        self.count = self.count.wrapping_add(1);
+        if self.raw_byte_too_big {
+            if self.count > self.unit_max { self.count = 0 };
+        }
+
+        let bytes = self.count.to_le_bytes();
+        let mut data: Vec<u8> = bytes.repeat(self.ncopies);
+        
+        data.resize(self.size, 0);
+        data 
     }
 }
-

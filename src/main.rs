@@ -2,7 +2,7 @@ use std::{thread::sleep, time::Duration};
 
 use crate::common::AsRc;
 use crate::lr1121::LR1121;
-// #[cfg(all(not(test), feature = "simulation"))]
+#[cfg(all(feature = "simulation"))]
 use crate::network::simulated_radio::SimulatedRadio;
 use crate::pubsub::Connection;
 use crate::{common_config::{DOWNLINK_CH, INITIAL_CODE_RATE, LORA_PREAMBLE_LENGTH}, data_handlers::{ConsumerManager, DataConsumer, ProducerManager}, network::{NetworkRadio, conn_mgr::RadioConnectionManager}, network_ids::{TypeID, TypeIDs}, packet::DecodedPacket, pubsub::{tism::TISMConnection, zenoh::ZenohConnection}};
@@ -18,6 +18,7 @@ mod common_config;
 mod simulation;
 mod config;
 mod lr1121;
+mod rocket_config;
 
 fn main() {
     println!("CPSS - LoRa Rocket Communication Node");
@@ -26,7 +27,7 @@ fn main() {
     
     let mut consumer_mgmt= ConsumerManager::new();
 
-    #[cfg(any(not(any(test, feature = "simulation")), feature = "hardware_attached_full_system"))]
+    #[cfg(any(not(feature = "simulation"), feature = "hardware_attached_full_system"))]
     let (mut _tism, mut _zenoh) = {
         let cfg =  config::parse("./etc/config.toml").expect("Unable to parse config!");
         let mut generator = config::generator::Generator::new(
@@ -60,10 +61,10 @@ fn main() {
     );
 
     // configure lr1121
-    // #[cfg(not(any(test, feature = "simulation")))]
-    let mut radio = LR1121::new();
+    #[cfg(not(any(test, feature = "simulation")))]
+    let mut radio = LR1121::new(rocket_config::LR1121_CONFIG);
 
-    #[cfg(all(not(test), feature = "simulation"))]
+    #[cfg(all(feature = "simulation"))] // LR1121 has no test provider for now, so simulation provider will act for test
     let mut radio = SimulatedRadio::new(common_config::SIMULATION_ROCKET_ADDR.to_string(), common_config::SIMULATION_GROUND_ADDR.to_string());
 
     if let Err(e) = radio.configure() {

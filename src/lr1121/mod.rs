@@ -5,27 +5,36 @@ use lr1121wrapper::{Context, begin, end, getSNR, init, receive, setCodingRate, s
 use crate::{common::{BufferType, SpreadFactor, LoraCodeRate}, common_config::{UPLINK_TRANSMIT_TIMEOUT_PERIOD, LORA_125KHZ_CH0, LORA_PREAMBLE_LENGTH, INITIAL_CODE_RATE}, errors::{self, AnyError}, network::{NetworkRadio, SendError}, packet::{self, OutgoingPacketConfig, PacketMetadata, ReceivedPacket}};
 
 pub struct LR1121Config {
-    spi_channel:    u8,
-    spi_speed:      u32,
-    spi_device:     u8,
-    gpio_device:    u8,
-    cs:             u32,
-    irq:            u32,
-    rst:            u32,
-    busy:           u32,
-    dio8:           u32,
+    pub spi_channel:    u8,
+    pub spi_speed:      u32,
+    pub spi_device:     u8,
+    pub gpio_device:    u8,
+    pub cs:             u32,
+    pub irq:            u32,
+    pub rst:            u32,
+    pub busy:           u32,
+    pub dio8:           u32,
 
-    freq:            f32,
-    bw:              f32,
-    sf:              u8,
-    cr:              u8,
-    sync_word:       u8,
-    power:           i8,
-    preamble_length: u16,
-    tcxo_voltage:    f32,
+    pub freq:            f32,
+    pub bw:              f32,
+    pub sf:              u8,
+    pub cr:              u8,
+    pub sync_word:       u8,
+    pub power:           i8,
+    pub preamble_length: u16,
+    pub tcxo_voltage:    f32,
 
-    timeout:         u16
+    pub timeout:         u16
 }
+
+pub const DEFAULT_LR1121_CONFIG: LR1121Config = LR1121Config {
+    spi_channel: 0, spi_speed: 16_000_000, spi_device: 7, 
+    gpio_device: 4, cs: 8, irq: 0, 
+    rst: 0, busy: 0, dio8: 0, 
+    freq: (LORA_125KHZ_CH0) as f32, bw: 125.0, sf: 0, 
+    cr: 0x1, sync_word: 0, power: 22,
+    preamble_length: LORA_PREAMBLE_LENGTH, tcxo_voltage: 3.3, timeout: 0
+};
 
 pub struct LR1121 {
     ctx: *mut  Context,
@@ -34,16 +43,7 @@ pub struct LR1121 {
 }
 
 impl LR1121 {
-    pub fn new() -> Self {
-        let config = LR1121Config {
-            spi_channel: 0, spi_speed: 16_000_000, spi_device: 7, 
-            gpio_device: 4, cs: 8, irq: 0, 
-            rst: 0, busy: 0, dio8: 0, 
-            freq: (LORA_125KHZ_CH0) as f32, bw: 125.0, sf: 0, 
-            cr: 0x1, sync_word: 0, power: 22,
-            preamble_length: LORA_PREAMBLE_LENGTH, tcxo_voltage: 3.3, timeout: 0
-        }; 
-        
+    pub fn new(config: LR1121Config) -> Self {
         let new_ctx = unsafe {
             init(
                 config.spi_channel,    //spiChannel

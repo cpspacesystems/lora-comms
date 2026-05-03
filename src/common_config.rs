@@ -40,3 +40,4 @@ pub const UPLINK_TRANSMIT_TIMEOUT_PERIOD: time::Duration = time::Duration::from_
 
 pub const SIMULATION_GROUND_ADDR: &'static str = "127.0.0.1:13374";
 pub const SIMULATION_ROCKET_ADDR: &'static str = "127.0.0.1:13375";
+pub const HWAS_PUBLISH_RATE: time::Duration = time::Duration::from_millis(100);

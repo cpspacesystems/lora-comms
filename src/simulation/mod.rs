@@ -1,4 +1,5 @@
 
+mod data_generator;
 
 static TOKIO_RT: std::sync::OnceLock<tokio::runtime::Runtime> = std::sync::OnceLock::new();
 pub fn get_tokio_or_init() -> tokio::runtime::Handle {
@@ -15,42 +16,41 @@ pub fn get_tokio_or_init() -> tokio::runtime::Handle {
 pub mod hardware_attached {
     use std::{process, thread::sleep, time};
 
-    use crate::simulation::get_tokio_or_init;
+    use crate::{common_config, pubsub::{self, Connection}, simulation::{data_generator::DataSource, get_tokio_or_init}};
 
-    mod codegen {
-        include!{concat!(env!("OUT_DIR"), "/codegen_hws_binary_paths.rs")}
-    }
+    pub fn spawn_tism(size: usize, path: String) {
+        println!("HWAS: Spawn tism pub size of {} at {}", size, path);
 
-    pub fn spawn_tism(size: usize, path: impl AsRef<str>) {
-        println!("HWAS: Spawn tism pub size of {} at {}", size, path.as_ref());
-        let args = [size.to_string(), path.as_ref().to_string()];
+        std::thread::spawn(move || {
+            let publisher = pubsub::tism::TISMConnection.publish(size, path);
 
-        std::thread::spawn(|| {
-            process::Command::new(codegen::HWAS_TISM_SOURCE)
-                .args(args)
-                .spawn().expect("HWAS: Faield to spawn TISM publisher.");
+            spawn_data_source(size, publisher);
         });
-        // get_tokio_or_init().spawn(async {
-        //     let _ = tokio::process::Command::new(codegen::HWAS_TISM_SOURCE)
-        //     .args(args)
-        //     .kill_on_drop(true)
-        //     .spawn().expect("HWAS: Faield to spawn TISM publisher.")
-        //     .wait().await
-        //     ;
-        // });
     }
 
-    pub fn spwan_zenoh(size: usize, path: impl AsRef<str>) {
-        todo!();
-        // println!("HWAS: Spawn Zenoh pub size of {} at {}", size, path.as_ref());
-        // let args = [size.to_string(), path.as_ref().to_string()];
-        // get_tokio_or_init().spawn(async {
-        //     let _ = tokio::process::Command::new(codegen::HWAS_ZENOH_SOURCE)
-        //     .args(args)
-        //     .kill_on_drop(true)
-        //     .spawn().expect("HWAS: Faield to spawn Zenoh publisher.")
-        //     .wait().await
-        //     ;
-        // });
+    pub fn spwan_zenoh(size: usize, path: String) {
+        println!("HWAS: Spawn Zenoh pub size of {} at {}", size, path);
+
+        std::thread::spawn(move || {
+            let publisher = pubsub::zenoh::ZenohConnection::new().publish(size, path);
+
+            spawn_data_source(size, publisher);
+        });
+    }
+
+    fn spawn_data_source(size: usize, mut publisher: impl pubsub::Publisher) {
+        let mut generator = DataSource::new(size);
+        
+        let mut last_slept_time = time::Instant::now();
+        loop {
+            publisher.publish(generator.generate()).expect("HWAS: Failed to publish!");
+            
+            let now = time::Instant::now();
+            let delta = now.saturating_duration_since(last_slept_time);
+            if delta < common_config::HWAS_PUBLISH_RATE {
+                std::thread::sleep(delta);
+            }
+            last_slept_time = now;
+        }
     }
 }

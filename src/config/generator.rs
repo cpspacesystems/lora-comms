@@ -205,8 +205,8 @@ impl<T, Z> Generator<T, Z>
     #[cfg(feature = "hardware_attached_full_system")]
     fn hwas_spawn_publisher(&mut self, size: usize, network: &Network, path: &str) {
         match network {
-            Network::TISM => simulation::hardware_attached::spawn_tism(size, path),
-            Network::Zenoh => simulation::hardware_attached::spwan_zenoh(size, path),
+            Network::TISM => simulation::hardware_attached::spawn_tism(size, path.to_string()),
+            Network::Zenoh => simulation::hardware_attached::spwan_zenoh(size, path.to_string()),
         }
     }
 }
