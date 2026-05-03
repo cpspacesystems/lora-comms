@@ -18,7 +18,7 @@ TARGET_SSH=$2
 TARGET_SOURCE_LOCATION=$3
 
 echo "syncing environment from ${TARGET_SSH}"
-rsync --compress --fsync --delete --recursive --quiet "${TARGET_SSH}:/${TARGET_SOURCE_LOCATION}/lib" "${SCRIPT_DIR}/cross"
+rsync --archive --sparse --compress --fsync --delete --recursive --mkpath --quiet "${TARGET_SSH}:/${TARGET_SOURCE_LOCATION}/lib" "${SCRIPT_DIR}/cross"
 
 echo "building"
 # `cargo install cross` if cross is not avaliable (you also need to have docker avaliable)
@@ -26,6 +26,8 @@ cross build --target "${TARGET}"
 
 echo "deploying"
 cd "${SCRIPT_DIR}/target/${TARGET}"
-find ./ -type f -executable -print0 \
-| rsync --compress --fsync --delete --recursive --quiet --files-from=- --from0 ./ "${TARGET_SSH}:/${TARGET_SOURCE_LOCATION}/target/deployed"
+
+# this ignores anything in */deps/* (all the stuff generated in there binaries but not actually useful for running)
+find ./ -type f ! -path "*/deps/*" -executable -print0 \
+| rsync --archive --sparse --compress --fsync --delete --recursive --mkpath --progress --files-from=- --from0 ./ "${TARGET_SSH}:/${TARGET_SOURCE_LOCATION}/target/deployed"
 
