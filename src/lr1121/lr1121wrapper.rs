@@ -4,7 +4,6 @@ pub struct Context {
 }
 
 #[cfg(target_family = "unix")]
-#[link(name = "stdc++", kind="dylib")]
 #[link(name = "lora_bridge", kind="static")]
 #[link(name = "lgpio", kind="static")]
 #[link(name = "RadioLib", kind="static")]

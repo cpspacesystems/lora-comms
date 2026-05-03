@@ -10,10 +10,10 @@ add_library(lora_bridge STATIC wrapper.cpp)
 set_property(TARGET lora_bridge PROPERTY CXX_STANDARD 20)
 
 # find lpgio
-find_path(LGPIO_INCLUDE_DIR lgpio.h "/usr/local/include" "/usr/include" "/opt/include" "${CMAKE_SOURCE_DIR}/../installed/include")
-find_library(LGPIO_LIBS liblgpio HINTS "/usr/local/lib" /usr/lib)
-if (NOT "${LGPIO_INCLUDE_DIR}")
-    message(NOTICE "lgpio.h not found, manually compiling lgpio!")
+# find_path(LGPIO_INCLUDE_DIR lgpio.h "/usr/local/include" "/usr/include" "/opt/include" "${CMAKE_SOURCE_DIR}/../installed/include")
+# find_library(LGPIO_LIBS liblgpio HINTS "/usr/local/lib" /usr/lib)
+# if (NOT "${LGPIO_INCLUDE_DIR}")
+    # message(NOTICE "lgpio.h not found, manually compiling lgpio!")
     execute_process(
         COMMAND bash "${CMAKE_SOURCE_DIR}/get_lgpio.bash"
         WORKING_DIRECTORY ${CMAKE_BINARY_DIR}
@@ -23,7 +23,7 @@ if (NOT "${LGPIO_INCLUDE_DIR}")
     add_library(lgpio STATIC ${LGPIO_SOURCE})
     target_include_directories(lgpio PUBLIC ${LGPIO_INCLUDE_DIR})
     set(LGPIO_LIBS STRING "lgpio")
-endif()
+# endif()
 
 target_include_directories(lora_bridge 
     PUBLIC "${CMAKE_SOURCE_DIR}/../RadioLib/src"

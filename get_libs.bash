@@ -21,7 +21,10 @@ cd ./lib
 cd "${SCRIPT_DIR}/lib"
 echo "Downloading RadioLib (With Customizations specfic to CPSS)"
 git clone https://github.com/cpspacesystems/lora-comms.git -b radioLib RadioLib
-cd RadioLib
+echo "building lr1121_radiolib_bridge and RadioLib"
+cd ./lr1121_radiolib_bridge
+cmake -S . -B ./build
+cmake --build ./build -j $(nproc)
 
 cd "${SCRIPT_DIR}/lib"
 echo "Downloading sx1302 driver"

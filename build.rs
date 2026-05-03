@@ -17,6 +17,8 @@ fn main() {
         add_linker_search_paths(".");
     }
     
+    println!("cargo:rustc-link-lib=dylib=stdc++");
+
     #[cfg(feature = "hardware_attached_full_system")]
     {
         std::process::Command::new("cargo")
