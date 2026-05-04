@@ -1,9 +1,6 @@
 use std::{cell::{OnceCell, RefCell}, collections::HashMap, rc::Rc, time};
 
-use crate::{common::AsRc, config::format::{self, Entry, Network}, data_handlers::{self, DataConsumer, DataProducer}, pubsub::{self, Connection, zenoh::ZenohPublisher}, simulation};
-
-const PACKER_MAX_SIZE: usize = 240;
-
+use crate::{common::AsRc, common_config, config::format::{self, Entry, Network}, data_handlers::{self, DataConsumer, DataProducer}, pubsub::{self, Connection, zenoh::ZenohPublisher}, simulation};
 pub struct IDProvider {
     consuming_id: u8,
     producing_id: u8,
@@ -70,9 +67,11 @@ impl<T, Z> Generator<T, Z>
         self.hwas_spawn_publisher(entry.size.into(), &entry.source_network, &entry.source_path);
         
         let p = self.create_producer(&entry.source_network, entry.size.into(), &entry.source_path);
-        match entry.rate {
-            format::PollRate::ASAP | format::PollRate::OnChange => self.producers.push(p),
-            format::PollRate::FixedRate(duration) => self.rate_map_producers.entry(duration).or_default().push((entry.size.into(), p)),
+        for s in self.optionally_split_producer(entry.size.into(), p) {
+            match entry.rate {
+                format::PollRate::ASAP | format::PollRate::OnChange => self.producers.push(s),
+                format::PollRate::FixedRate(duration) => self.rate_map_producers.entry(duration).or_default().push((entry.size.into(), s)),
+            };
         };
     }
 
@@ -86,9 +85,11 @@ impl<T, Z> Generator<T, Z>
     pub fn add_entry_consuming(&mut self, entry: &Entry) {
         let c = self.create_consumer(&entry.destination_network, entry.size.into(), &entry.destination_path);
 
-        match entry.rate {
-            format::PollRate::ASAP | format::PollRate::OnChange => self.consumers.push(c),
-            format::PollRate::FixedRate(duration) => self.rate_map_consumers.entry(duration).or_default().push((entry.size.into(), c)),
+        for s in self.optionally_split_consumer(entry.size.into(), c) {
+            match entry.rate {
+                format::PollRate::ASAP | format::PollRate::OnChange => self.consumers.push(s),
+                format::PollRate::FixedRate(duration) => self.rate_map_consumers.entry(duration).or_default().push((entry.size.into(), s)),
+            };
         };
     }
 
@@ -106,11 +107,13 @@ impl<T, Z> Generator<T, Z>
     {
         let p = std::mem::take(&mut self.rate_map_producers);
         let prod_packed = self.pack_rate_map(p);
-        self.create_poll_rate_producer(prod_packed);
+        self.add_packed_poll_rate_producers(prod_packed);
 
         let c = std::mem::take(&mut self.rate_map_consumers);
-        let cons_packed = self.pack_rate_map(c);        
-        self.create_poll_rate_consumer(cons_packed);
+        let cons_packed = self.pack_rate_map(c);
+        self.add_packed_poll_rate_consumers(cons_packed);
+
+        println!("");
 
         for p in self.producers {
             producer_mgmt.add_by_id(id_provider.next_producer(), p);
@@ -124,12 +127,17 @@ impl<T, Z> Generator<T, Z>
 
     fn pack_rate_map<V>(&mut self, map: HashMap<time::Duration, Vec<(usize, V)>>) -> Vec<(time::Duration, Vec<V>)> {
         let mut packed = Vec::new();
-        for (d, v) in map {
+        
+        // sort the hash map cuz HashMaps have no guranteed iteration order and we depend on that for ids to match
+        let mut sorted: Vec<(time::Duration, Vec<(usize, V)>)> = map.into_iter().collect();
+        sorted.sort_by(|(a, _), (b, _)| a.cmp(b));
+
+        for (d, v) in sorted {
             let mut packs: Vec<(usize, Vec<V>)> = Vec::new();
 
             'outer: for (size, value) in v {
                 for (len, pack) in &mut packs {
-                    if *len + size < PACKER_MAX_SIZE {
+                    if *len + size < crate::common_config::PACKER_MAX_SIZE {
                         *len += size;
                         pack.push(value);
                         continue 'outer;
@@ -163,6 +171,22 @@ impl<T, Z> Generator<T, Z>
         self.network_zenoh.as_mut().unwrap()    
     }
 
+    fn optionally_split_producer(&self, size: usize, producer: Rc<RefCell<dyn DataProducer>>) -> Vec<Rc<RefCell<dyn DataProducer>>>{
+        if size > common_config::PACKER_MAX_SIZE {
+            data_handlers::split_data::Producer::split_producer(producer)
+        } else {
+            vec![producer]
+        }
+    }
+
+    fn optionally_split_consumer(&self, size: usize, consumer: Rc<RefCell<dyn DataConsumer>>) -> Vec<Rc<RefCell<dyn DataConsumer>>>{
+        if size > common_config::PACKER_MAX_SIZE {
+            data_handlers::split_data::Consumer::split_consumer(consumer)
+        } else {
+            vec![consumer]
+        }
+    }
+
     fn create_producer(&mut self, network: &Network, size: usize, name: impl AsRef<str>) -> std::rc::Rc<std::cell::RefCell<dyn data_handlers::DataProducer>>  {
         match network {
             Network::TISM => {
@@ -190,15 +214,15 @@ impl<T, Z> Generator<T, Z>
     }
 
 
-    fn create_poll_rate_producer(&mut self, packed_prods: Vec<(time::Duration, Vec<Rc<RefCell<dyn DataProducer>>>)>) {
+    fn add_packed_poll_rate_producers(&mut self, packed_prods: Vec<(time::Duration, Vec<Rc<RefCell<dyn DataProducer>>>)>) {
         for (d, p) in packed_prods {
             self.producers.push(data_handlers::constant_poll_rate::Producer::new(d, p).as_rc());
         }
     }
 
-    fn create_poll_rate_consumer(&mut self, packed_cons: Vec<(time::Duration, Vec<Rc<RefCell<dyn DataConsumer>>>)>) {
-        for (d, p) in packed_cons {
-            self.consumers.push(data_handlers::constant_poll_rate::Consumer::new(d, p).as_rc());
+    fn add_packed_poll_rate_consumers(&mut self, packed_cons: Vec<(time::Duration, Vec<Rc<RefCell<dyn DataConsumer>>>)>) {
+        for (_d, p) in packed_cons {
+            self.consumers.push(data_handlers::constant_poll_rate::Consumer::new(p).as_rc());
         }
     }
 

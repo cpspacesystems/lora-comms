@@ -54,18 +54,17 @@ impl DataProducer for Producer {
 }
 
 pub struct Consumer {
-    rate: time::Duration,
     consumers: Vec<Rc<RefCell<dyn DataConsumer>>>,
     total_size: usize,
 }
 
 impl Consumer {
-    pub fn new(rate: time::Duration, consumers: Vec<Rc<RefCell<dyn DataConsumer>>>) -> Self {
+    pub fn new(consumers: Vec<Rc<RefCell<dyn DataConsumer>>>) -> Self {
         let total_size: usize = consumers.iter()
             .map(|x| x.borrow().get_size())
             .sum();
 
-        Self { rate, consumers, total_size }
+        Self { consumers, total_size }
     }
 }
 

@@ -8,6 +8,7 @@ pub mod prng_data_source;
 pub mod raw_pubsub;
 pub mod constant_poll_rate;
 // pub mod r_qos;
+pub mod split_data;
 
 /// generic trait for data producers
 pub trait DataProducer {

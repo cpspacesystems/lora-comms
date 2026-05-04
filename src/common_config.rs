@@ -1,11 +1,13 @@
 use std::time;
 
-use crate::common::{LoraChannel, LoraCodeRate};
+use crate::{common::{LoraChannel, LoraCodeRate}, network, network_ids, packet::OutgoingFrameBuilder};
 
 
 // must match the payload arr size in loragw_hal, or smaller
 // must also fit into a u8 (aka <= 255)
-pub const MAX_PAYLOAD_SIZE:usize = 255;
+pub const MAX_PAYLOAD_SIZE: usize = 255;
+pub const PACKER_MAX_SIZE: usize = 
+    MAX_PAYLOAD_SIZE - OutgoingFrameBuilder::PACKET_FIXED_SIZE - size_of::<network_ids::TypeID>();
 
 pub const BASE_FREQ: u32 = 907300000;
 pub const FREQ_OFFSET: u32 = 200_000; 

@@ -1,25 +1,117 @@
 
+# This file is for software simulation and hardware attached verification of the radio systems only
+# ! THIS IS NOT A REAL DATA CONFIGURATION FOR ROCKET DATA !
+
+
 [[rocket_to_ground]]
 rate = "1Hz"
-size = 20
+size =  80
 source_network = "TISM"
-source_path = "tom_test_1"
+source_path = "tom_src1"
 destination_network = "TISM"
-destination_path = "ground_test_1"
+destination_path = "ground_src1"
 
+[[rocket_to_ground]]
+rate = "1Hz"
+size =  40
+source_network = "TISM"
+source_path = "tom_src2"
+destination_network = "TISM"
+destination_path = "ground_src2"
+
+[[rocket_to_ground]]
+rate = "1Hz"
+size =  100 
+source_network = "TISM"
+source_path = "tom_src3"
+destination_network = "TISM"
+destination_path = "ground_src3"
+
+[[rocket_to_ground]]
+rate = "1Hz"
+size =  120 
+source_network = "TISM"
+source_path = "tom_src4"
+destination_network = "TISM"
+destination_path = "ground_src4"
+
+[[rocket_to_ground]]
+rate = "1Hz"
+size =  11 
+source_network = "TISM"
+source_path = "tom_src5"
+destination_network = "TISM"
+destination_path = "ground_src5"
+
+[[rocket_to_ground]]
+rate = "0.5Hz"
+size =  100
+source_network = "TISM"
+source_path = "tom_slow1"
+destination_network = "TISM"
+destination_path = "ground_slow1"
+
+[[rocket_to_ground]]
+rate = "10Hz"
+size =  8
+source_network = "TISM"
+source_path = "tom_fast1"
+destination_network = "TISM"
+destination_path = "ground_fast1"
 
 [[rocket_to_ground]]
 rate = "ASAP"
-size = 100
+size =  8
 source_network = "TISM"
-source_path = "tom_test_2"
+source_path = "tom_asap1"
 destination_network = "TISM"
-destination_path = "ground_test_2"
+destination_path = "_ground_asap1"
+
+[[rocket_to_ground]]
+rate = "ASAP"
+size =  16
+source_network = "TISM"
+source_path = "tom_asap2"
+destination_network = "TISM"
+destination_path = "_ground_asap2"
+
+[[rocket_to_ground]]
+rate = "OnChange"
+size =  4
+source_network = "TISM"
+source_path = "tom_onchange1"
+destination_network = "TISM"
+destination_path = "ground_onchange1"
+
+[[rocket_to_ground]]
+rate = "OnChange"
+size =  64
+source_network = "TISM"
+source_path = "tom_onchange2"
+destination_network = "TISM"
+destination_path = "ground_onchange2"
+
+[[rocket_to_ground]]
+rate = "0.333Hz"
+size =  500
+source_network = "TISM"
+source_path = "tom_huge"
+destination_network = "TISM"
+destination_path = "ground_huge"
+
 
 [[ground_to_rocket]]
 rate = "OnChange"
-size = 4
+size =  4
 source_network = "TISM"
-source_path = "tom_test_3"
+source_path = "ground_signal1"
 destination_network = "TISM"
-destination_path = "ground_test_3"
+destination_path = "tom_signal1"
+
+[[ground_to_rocket]]
+rate = "OnChange"
+size =  16
+source_network = "TISM"
+source_path = "ground_signal2"
+destination_network = "TISM"
+destination_path = "tom_signal2"

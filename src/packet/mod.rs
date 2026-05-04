@@ -59,6 +59,8 @@ impl<'a> OutgoingFrameBuilder<'a> {
                 } 
             };
 
+            print!("P {} ", id);
+
             let ds = match create_data_section(*id, data) {
                 Ok(v) => v,
                 Err(e) => { 
@@ -69,6 +71,7 @@ impl<'a> OutgoingFrameBuilder<'a> {
 
             self.data_sections.push(ds);
         };
+        println!();
     }
 
     #[inline]

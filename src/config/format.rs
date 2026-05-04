@@ -14,7 +14,7 @@ pub struct TLF {
 #[derive(Debug, Deserialize)]
 pub struct Entry {
     pub rate: PollRate,
-    pub size: u8,
+    pub size: usize,
     pub source_network: Network,
     pub source_path: String,
     pub destination_network: Network,

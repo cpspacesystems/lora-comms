@@ -11,7 +11,7 @@ use crate::{network_ids::{TypeID, TypeIDs}};
 pub fn create_data_section(type_id: TypeID, mut data: Vec<u8>) -> Result<BufferType, AnyError> {
     let mut buffer = BufferType::with_capacity(1 + data.len());
 
-    buffer.push((type_id as u8).to_le());
+    buffer.push(type_id.to_le());
     buffer.append(&mut data);
 
     Ok(buffer)
@@ -57,14 +57,15 @@ pub fn decode_data_sections<'a>(consumer_mg: &'a ConsumerManager, data: &[u8]) -
         // get content
         let size = data_consumer.borrow().get_size();
         if head + size > data.len() {
-            println!("Id: {}", id);
-            return Err(errors::InvalidData(format!("Expected data of size {}, but go data with size of {}!", head + size, size)).into());
+            return Err(errors::InvalidData(format!("ID {} expected data of size {}, but go data with size of {}!", id, head + size, size)).into());
         }
         let bytes = data[head..head + size].to_vec();
+        print!("C {} ", id);
         res.push(DecodedDataSection {id, data_consumer, bytes});
         head += size;
     }
 
+    println!();
     Ok(res)
 }
 
