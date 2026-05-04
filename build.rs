@@ -16,6 +16,5 @@ fn main() {
     } else {
         add_linker_search_paths(".");
     }
-    
-    println!("cargo:rustc-link-lib=dylib=stdc++");
+
 }

@@ -7,6 +7,7 @@ pub struct Context {
 #[link(name = "lora_bridge", kind="static")]
 #[link(name = "lgpio", kind="static")]
 #[link(name = "RadioLib", kind="static")]
+#[link(name = "stdc++", kind="static")]
 unsafe extern "C" {
     pub fn init(
         spiChannel: u8,

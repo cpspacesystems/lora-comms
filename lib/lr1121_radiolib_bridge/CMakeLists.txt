@@ -3,6 +3,7 @@ project(lora_bridge)
 
 set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
 
+set(CMAKE_POSITION_INDEPENDENT_CODE ON)
 add_subdirectory("${CMAKE_SOURCE_DIR}/../RadioLib" RadioLib)
 
 add_library(lora_bridge STATIC wrapper.cpp)
@@ -22,7 +23,7 @@ set_property(TARGET lora_bridge PROPERTY CXX_STANDARD 20)
     file(GLOB LGPIO_SOURCE "${CMAKE_BINARY_DIR}/lg/lg*.c")
     add_library(lgpio STATIC ${LGPIO_SOURCE})
     target_include_directories(lgpio PUBLIC ${LGPIO_INCLUDE_DIR})
-    set(LGPIO_LIBS STRING "lgpio")
+    set(LGPIO_LIBS "lgpio")
 # endif()
 
 target_include_directories(lora_bridge 

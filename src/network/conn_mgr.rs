@@ -205,7 +205,6 @@ impl<'a> RadioConnectionManager<'a> {
 
             // peer has ended transmission, we can begin transmitting our data
             if self.last_tsm.is_eot() {
-                println!("transmit");
                 self.current_status = RadioConnectionStatus::TRANSMITTING;
                 return self.construct_frame();
             }
