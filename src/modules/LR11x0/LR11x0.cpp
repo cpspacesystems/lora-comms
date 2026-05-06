@@ -1,5 +1,6 @@
 #include "LR11x0.h"
 
+#include <cstdint>
 #include <math.h>
 #include <string.h>
 
@@ -423,7 +424,7 @@ int16_t LR11x0::readData(uint8_t* data, size_t len) {
   // check if CRC failed - this is done after reading data to give user the option to keep them
   RADIOLIB_ASSERT(crcState);
 
-  return(state);
+  return(static_cast<int16_t>(length));
 }
 
 int16_t LR11x0::finishReceive() {
