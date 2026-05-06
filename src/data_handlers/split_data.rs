@@ -160,7 +160,7 @@ impl SplitSource {
             };
             // split data
             let (chunks, remainder) = data.as_chunks::<PACKER_MAX_SIZE>();
-            if chunks.len() + 1 != self.data_fragments.len() {
+            if chunks.len() + ( if !remainder.is_empty() { 1 } else { 0 }) != self.data_fragments.len() {
                 return Err(format!("Split Source expected {} chunks, but got {} chunks!", self.data_fragments.len(), chunks.len() + 1).into());
             }
             // update frags

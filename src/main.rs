@@ -1,8 +1,10 @@
+use std::time;
 use std::{thread::sleep, time::Duration};
 
 use crate::common::AsRc;
+use crate::common_config::LORA_125KHZ_CH0;
 use crate::lr1121::LR1121;
-#[cfg(all(feature = "simulation"))]
+#[cfg(any(test, feature = "simulation"))]
 use crate::network::simulated_radio::SimulatedRadio;
 use crate::pubsub::Connection;
 use crate::{common_config::{DOWNLINK_CH, INITIAL_CODE_RATE, LORA_PREAMBLE_LENGTH}, data_handlers::{ConsumerManager, DataConsumer, ProducerManager}, network::{NetworkRadio, conn_mgr::RadioConnectionManager}, network_ids::{TypeID, TypeIDs}, packet::DecodedPacket, pubsub::{tism::TISMConnection, zenoh::ZenohConnection}};
@@ -64,7 +66,7 @@ fn main() {
     #[cfg(not(any(test, feature = "simulation")))]
     let mut radio = LR1121::new(rocket_config::LR1121_CONFIG);
 
-    #[cfg(all(feature = "simulation"))] // LR1121 has no test provider for now, so simulation provider will act for test
+    #[cfg(any(test, feature = "simulation"))] // LR1121 has no test provider for now, so simulation provider will act for test
     let mut radio = SimulatedRadio::new(common_config::SIMULATION_ROCKET_ADDR.to_string(), common_config::SIMULATION_GROUND_ADDR.to_string());
 
     if let Err(e) = radio.configure() {
@@ -78,6 +80,7 @@ fn main() {
 
     // start sx1302
     let mut f_exit = false;
+    let mut last_loop_time = time::Instant::now();
     while !f_exit {
         let mut decoded_packets: Vec<DecodedPacket> = Vec::new();
         // fetch any new packets 
@@ -99,7 +102,7 @@ fn main() {
 
         if !outbound_packets.is_empty() {
             let pkt_config = packet::OutgoingPacketConfig {
-                freq_hz: DOWNLINK_CH.into(),
+                freq_hz: LORA_125KHZ_CH0,
                 modulation: packet::OutgoingPacketModulation::LoRa { 
                     bandwidth: common::Bandwidth::Low125khz, 
                     spread_factor: common::SpreadFactor::SF7, 
@@ -133,7 +136,11 @@ fn main() {
             }
         }
 
-        // dbg!(connection_mgr.get_statistics());
+        let now = time::Instant::now();
+        if now.saturating_duration_since(last_loop_time) > time::Duration::from_secs(1) {
+            last_loop_time = now;
+            dbg!(connection_mgr.get_statistics());
+        }
         // sleep by what ever ms for new packets to appear
         // sleep(Duration::from_millis(360/1000));
     }; 

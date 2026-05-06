@@ -23,7 +23,7 @@ dead_code = "allow"
 unused_imports = "allow"
 
 [features]
-default = [ "simulation", "hardware_attached_full_system" ]
+default = [ "hardware_attached_full_system" ]
 simulation = []
 hardware_attached_full_system = []
 

@@ -99,11 +99,12 @@ impl NetworkRadio for LR1121 {
         let mut buffer = [0u8; 256]; 
         let data_ptr = buffer.as_mut_ptr();
         let result = unsafe {
+            if let s = setFrequency(self.ctx, self.config.freq) && s != 0 { return Err(format!("set FREQ failed {}", s).as_str().into()); };
             receive(self.ctx, data_ptr, buffer.len(), UPLINK_TRANSMIT_TIMEOUT_PERIOD.as_millis() as u32)
         };
 
 
-        if result == 0 {
+        if result >= 0 {
             let sf = match self.config.sf {
                 5 => SpreadFactor::SF5,
                 6 => SpreadFactor::SF6,
@@ -112,7 +113,7 @@ impl NetworkRadio for LR1121 {
                 9 => SpreadFactor::SF9,
                 _ => panic!("invalid spread factor {}", self.config.sf),
             };
-            let cr = match self.config.cr {
+            let cr = match self.config.cr - 4 {
                 1 => LoraCodeRate::CR1,
                 2 => LoraCodeRate::CR2,
                 3 => LoraCodeRate::CR3,
@@ -121,7 +122,7 @@ impl NetworkRadio for LR1121 {
             };
 
             let metadata = PacketMetadata {
-                length: buffer.len(),
+                length: result as usize,
                 snr: unsafe {getSNR(self.ctx)},
                 frequency: self.config.freq as u32,
                 sf: sf,
@@ -130,10 +131,10 @@ impl NetworkRadio for LR1121 {
 
 
            let packets = vec![ReceivedPacket {
-                data: buffer.to_vec(),
+                data: buffer[..result as usize].to_vec(),
                 meta: metadata,
            }]; 
-            println!("INFO LR1121: Got new packet: {:#?}", packets);
+            // println!("INFO LR1121: Got new packet: {:#?}", packets);
             self.currently_rec = false;
             return Ok(packets);
         } else {
@@ -150,9 +151,9 @@ impl NetworkRadio for LR1121 {
         let address = 0;
         match packet_config.modulation {
             crate::packet::OutgoingPacketModulation::LoRa { spread_factor, coderate, .. } => unsafe {
-                setSpreadingFactor(self.ctx, spread_factor.into(), false);
-                setCodingRate(self.ctx, coderate as u8, false);
-                setFrequency(self.ctx, packet_config.freq_hz as f32);
+                if let s = setSpreadingFactor(self.ctx, spread_factor.into(), false) && s != 0 { return Err(format!("set SF failed {}", s).as_str().into()); };
+                if let s = setCodingRate(self.ctx, 4 + coderate as u8, false) && s != 0 { return Err(format!("set CR failed {}", s).as_str().into()); };
+                if let s = setFrequency(self.ctx, packet_config.freq_hz as f32 / 1_000_000.0) && s != 0 { return Err(format!("set FREQ failed {}", s).as_str().into()); };
             },
             _ => return Err("Unsupported modulation".into())
         }
@@ -160,8 +161,8 @@ impl NetworkRadio for LR1121 {
         let result = unsafe {
             transmit(self.ctx, delay, payload.as_ptr(), payload.len(), address)
         }; //payload maybe shouldn't be a reference
-        if result != 0 {
-            return Err(SendError::RadioBusy);
+        if result != 0 && result != -5 {
+            return Err(format!("INFO LR1121: Encountered error while transmitting: {}", result).as_str().into());
         }
         Ok(time::Duration::ZERO)
 

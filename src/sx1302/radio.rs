@@ -196,7 +196,7 @@ impl<'a, B: DeviceBackingAPI> NetworkRadio for SX1302<'a, B> {
         let mut raw_data = Vec::with_capacity(count);
         for i in 0..count {
             let packet = &packets[i];
-            println!("INFO SX1302: Got new packet: {:#?}", packet);
+            // println!("INFO SX1302: Got new packet: {:#?}", packet);
             
             if packet.status != bindings_loragw_hal::STAT_CRC_OK {
                 println!("WARN SX1302: Skipped one packet, CRC Non Ok.");
@@ -348,9 +348,9 @@ impl<'a, B: DeviceBackingAPI> SX1302<'a, B> {
         match (tx_status_code, rx_status_code) {
             (bindings_loragw_hal::TX_OFF, bindings_loragw_hal::RX_OFF) => Ok(RadioStatus::Off),
             (bindings_loragw_hal::TX_OFF, bindings_loragw_hal::RX_ON) => Ok(RadioStatus::RxOnly),
+            (bindings_loragw_hal::TX_FREE, _) => Ok(RadioStatus::Avaliable),
             (bindings_loragw_hal::TX_EMITTING | bindings_loragw_hal::TX_SCHEDULED, _) => Ok(RadioStatus::Busy),
             (_, bindings_loragw_hal::RX_SUSPENDED) => Ok(RadioStatus::Busy),
-            (bindings_loragw_hal::TX_FREE, bindings_loragw_hal::RX_ON) => Ok(RadioStatus::Avaliable),
 
             _ => Ok(RadioStatus::Unknown)
         }

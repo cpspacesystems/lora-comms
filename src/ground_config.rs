@@ -42,11 +42,11 @@ pub const SX1302_CONFIG: SX1302Configuration = SX1302Configuration {
 
     // Rx Channel configuration
     rx_0_lora: RxChannelConfigBuilder::default().enable(true).rf_radio(Radios::Radio1RxOnly).freq_offset_hz(common_config::LORA_125KHZ_CH0 as i32 - BASE_FREQ as i32).build(),
-    rx_1_lora: RxChannelConfigBuilder::default().enable(true).rf_radio(Radios::Radio1RxOnly).freq_offset_hz(common_config::LORA_125KHZ_CH1 as i32 - BASE_FREQ as i32).build(),
+    rx_1_lora: RxChannelConfigBuilder::default().enable(false).rf_radio(Radios::Radio1RxOnly).freq_offset_hz(common_config::LORA_125KHZ_CH1 as i32 - BASE_FREQ as i32).build(),
     rx_2_lora: RxChannelConfigBuilder::default().enable(true).rf_radio(Radios::Radio1RxOnly).freq_offset_hz(common_config::LORA_125KHZ_CH2 as i32 - BASE_FREQ as i32).build(),
-    rx_3_lora: RxChannelConfigBuilder::default().enable(true).rf_radio(Radios::Radio1RxOnly).freq_offset_hz(common_config::LORA_125KHZ_CH3 as i32 - BASE_FREQ as i32).build(),
+    rx_3_lora: RxChannelConfigBuilder::default().enable(false).rf_radio(Radios::Radio1RxOnly).freq_offset_hz(common_config::LORA_125KHZ_CH3 as i32 - BASE_FREQ as i32).build(),
     rx_4_lora: RxChannelConfigBuilder::default().enable(true).rf_radio(Radios::Radio1RxOnly).freq_offset_hz(common_config::LORA_125KHZ_CH4 as i32 - BASE_FREQ as i32).build(),
-    rx_5_lora: RxChannelConfigBuilder::default().enable(true).rf_radio(Radios::Radio1RxOnly).freq_offset_hz(common_config::LORA_125KHZ_CH5 as i32 - BASE_FREQ as i32).build(),
+    rx_5_lora: RxChannelConfigBuilder::default().enable(false).rf_radio(Radios::Radio1RxOnly).freq_offset_hz(common_config::LORA_125KHZ_CH5 as i32 - BASE_FREQ as i32).build(),
     rx_6_lora: RxChannelConfigBuilder::default().enable(true).rf_radio(Radios::Radio1RxOnly).freq_offset_hz(common_config::LORA_125KHZ_CH6 as i32 - BASE_FREQ as i32).build(),
     rx_7_lora: RxChannelConfigBuilder::default().enable(false).rf_radio(Radios::Radio1RxOnly).build(), // channels 7 & 8 hard disabled as outside of the capability range of the radios if good sepertion were to be maintained
     rx_8_lora_any_bandwidth: RxChannelConfigBuilder::default_lora_any_bandwdith().enable(false).rf_radio(Radios::Radio1RxOnly).build(),

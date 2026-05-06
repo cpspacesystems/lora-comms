@@ -12,6 +12,13 @@ pub type GPSTime = u64;
 pub enum LoraChannel {
     CH0, CH1, CH2, CH3, CH4, CH5, CH6
 }
+impl LoraChannel {
+    pub fn get_mhz(&self) -> f32 {
+        let hz: u32 = (*self).into();
+        
+        hz as f32 / 1_000_000.0
+    }
+}
 // lora radio channels mapping
 impl From<LoraChannel> for u32 {    
     fn from(value: LoraChannel) -> u32 {

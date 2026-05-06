@@ -8,21 +8,22 @@ use crate::{common::{LoraChannel, LoraCodeRate}, network, network_ids, packet::O
 pub const MAX_PAYLOAD_SIZE: usize = 255;
 pub const PACKER_MAX_SIZE: usize = 
     MAX_PAYLOAD_SIZE - OutgoingFrameBuilder::PACKET_FIXED_SIZE - size_of::<network_ids::TypeID>();
+// pub const PACKER_MAX_SIZE: usize = 100;
 
 pub const BASE_FREQ: u32 = 907300000;
 pub const FREQ_OFFSET: u32 = 200_000; 
 
-pub const LORA_125KHZ_CH0: u32 = BASE_FREQ + 0 * FREQ_OFFSET;
-pub const LORA_125KHZ_CH1: u32 = BASE_FREQ - 1 * FREQ_OFFSET;
-pub const LORA_125KHZ_CH2: u32 = BASE_FREQ + 1 * FREQ_OFFSET;
-pub const LORA_125KHZ_CH3: u32 = BASE_FREQ - 2 * FREQ_OFFSET;
-pub const LORA_125KHZ_CH4: u32 = BASE_FREQ + 2 * FREQ_OFFSET;
-pub const LORA_125KHZ_CH5: u32 = BASE_FREQ - 3 * FREQ_OFFSET;
-pub const LORA_125KHZ_CH6: u32 = BASE_FREQ + 3 * FREQ_OFFSET;
+pub const LORA_125KHZ_CH0: u32 = BASE_FREQ + 0 * FREQ_OFFSET; // DOWNLINK
+pub const LORA_125KHZ_CH1: u32 = BASE_FREQ - 1 * FREQ_OFFSET; // UPLINK
+pub const LORA_125KHZ_CH2: u32 = BASE_FREQ + 1 * FREQ_OFFSET; // DOWNLINK
+pub const LORA_125KHZ_CH3: u32 = BASE_FREQ - 2 * FREQ_OFFSET; // UPLINK
+pub const LORA_125KHZ_CH4: u32 = BASE_FREQ + 2 * FREQ_OFFSET; // DOWNLINK
+pub const LORA_125KHZ_CH5: u32 = BASE_FREQ - 3 * FREQ_OFFSET; // UPLINK
+pub const LORA_125KHZ_CH6: u32 = BASE_FREQ + 3 * FREQ_OFFSET; // DOWNLINK
 
 pub const LORA_PREAMBLE_LENGTH: u16 = 8; 
 
-pub const DOWNLINK_CH: LoraChannel = LoraChannel::CH1;
+pub const DOWNLINK_CH: LoraChannel = LoraChannel::CH0;
 pub const UPLINK_CH: LoraChannel = LoraChannel::CH3;
 pub const ALLOW_CH_CHANGE: bool = false;
 
@@ -35,7 +36,7 @@ pub const LORA_REGONATION_CODE: u8 = 0b1101001;
 
 pub const RADIO_ENABLE_UPLINK: bool = true;
 
-pub const PACKET_LOST_CALC_INTERVAL: time::Duration = time::Duration::from_secs(10); // seconds
+pub const PACKET_LOST_CALC_INTERVAL: time::Duration = time::Duration::from_secs(60); // seconds
 pub const CONNECTION_LOST_AFTER_PERIOD: time::Duration = time::Duration::from_secs(10); // seconds
 pub const UPLINK_TRANSMIT_BEGIN_PERIOD: time::Duration = time::Duration::from_millis(10); // ms
 pub const UPLINK_TRANSMIT_TIMEOUT_PERIOD: time::Duration = time::Duration::from_millis(100); // 100 ms 

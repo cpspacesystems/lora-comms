@@ -116,9 +116,9 @@ impl<'a> RadioConnectionManager<'a> {
     }
 
     pub fn get_statistics(&self) -> ConnectionStatistics {
-        let recent_packets_received: usize = self.recent_packets_received.len();
-        let recent_packets_lost: f64 = self.recent_packets_losts.iter()
-            .map(|v| *v.data() as f64)
+        let recent_packets_received = self.recent_packets_received.len() as f32;
+        let recent_packets_lost: f32 = self.recent_packets_losts.iter()
+            .map(|v| *v.data() as f32)
             .sum()
         ;
         let recent_data_received: usize = self.recent_packets_received.iter()
@@ -127,7 +127,7 @@ impl<'a> RadioConnectionManager<'a> {
         ;
 
         ConnectionStatistics { 
-            recent_packet_lost_rate: (recent_packets_lost / recent_packets_received as f64) as f32, 
+            recent_packet_lost_rate: (recent_packets_lost / recent_packets_received) as f32, 
             recent_data_rate: recent_data_received.try_into().unwrap_or(u64::MAX) / PACKET_LOST_CALC_INTERVAL.as_secs(), 
             .. self.stats 
         }
@@ -176,7 +176,7 @@ impl<'a> RadioConnectionManager<'a> {
         for packet in received_packets {
             println!("GOT: {}, {}", packet.tsm_ctrl.get_packet_number(), packet.tsm_ctrl.is_eot());
             let mut data_size = 0;
-            let packets_lost = packet.tsm_ctrl.num_packets_from_last(self.last_tsm);
+            let packets_lost = packet.tsm_ctrl.num_packets_from_last(self.last_tsm).saturating_sub(1);
 
             self.last_tsm = packet.tsm_ctrl;
             for ds in packet.data_sections {

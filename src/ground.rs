@@ -1,4 +1,4 @@
-use std::{rc::Rc, thread::sleep, time::Duration};
+use std::{rc::Rc, thread::sleep, time::{self, Duration}};
 
 #[cfg(all(not(test), feature = "simulation"))]
 use crate::network::simulated_radio::SimulatedRadio;
@@ -31,7 +31,7 @@ fn main() {
     
     let mut consumer_mgmt = ConsumerManager::new();
     
-    #[cfg(any(not(any(test, feature = "simulation")), feature = "hardware_attached_full_system"))]
+    #[cfg(any(not(feature = "simulation"), feature = "hardware_attached_full_system"))]
     let (mut _tism, mut _zenoh) = {
         let cfg =  config::parse("./etc/config.toml").unwrap();
         let mut generator = config::generator::Generator::new(
@@ -86,6 +86,7 @@ fn main() {
 
     // start sx1302
     let mut f_exit = false;
+    let mut last_loop_time = time::Instant::now();
     while !f_exit {
         let mut decoded_packets: Vec<DecodedPacket> = Vec::new();
         // fetch any new packets 
@@ -104,8 +105,6 @@ fn main() {
         };
 
         let outbound_packets = connection_mgr.update(radio.is_currently_receiving().unwrap_or(true), decoded_packets);
-
-        // dbg!(connection_mgr.get_statistics());
 
         if !outbound_packets.is_empty() {
             let pkt_config = packet::OutgoingPacketConfig {
@@ -143,8 +142,14 @@ fn main() {
             }
         }
 
+        let now = time::Instant::now();
+        if now.saturating_duration_since(last_loop_time) > time::Duration::from_secs(1) {
+            last_loop_time = now;
+            dbg!(connection_mgr.get_statistics());
+        }
+
         // sleep by what ever ms for new packets to appear
-        sleep(Duration::from_millis(360/1000));
+        // sleep(Duration::from_millis(360/1000));
     }; 
 }
 
