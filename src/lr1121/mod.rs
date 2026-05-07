@@ -23,8 +23,6 @@ pub struct LR1121Config {
     pub power:           i8,
     pub preamble_length: u16,
     pub tcxo_voltage:    f32,
-
-    pub timeout:         u16
 }
 
 pub const DEFAULT_LR1121_CONFIG: LR1121Config = LR1121Config {
@@ -33,7 +31,7 @@ pub const DEFAULT_LR1121_CONFIG: LR1121Config = LR1121Config {
     rst: 0, busy: 0, dio8: 0, 
     freq: (LORA_125KHZ_CH0) as f32, bw: 125.0, sf: 0, 
     cr: 0x1, sync_word: 0, power: 22,
-    preamble_length: LORA_PREAMBLE_LENGTH, tcxo_voltage: 3.3, timeout: 0
+    preamble_length: LORA_PREAMBLE_LENGTH, tcxo_voltage: 3.3
 };
 
 pub struct LR1121 {
