@@ -7,49 +7,6 @@ use crate::{common_config::{self, PRNG_SET_SEED, PRNG_SET_SEED_ENABLED}, errors}
 pub type BufferType = Vec<u8>;
 pub type GPSTime = u64; 
 
-/// lora radio channels
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
-pub enum LoraChannel {
-    CH0, CH1, CH2, CH3, CH4, CH5, CH6
-}
-impl LoraChannel {
-    pub fn get_mhz(&self) -> f32 {
-        let hz: u32 = (*self).into();
-        
-        hz as f32 / 1_000_000.0
-    }
-}
-// lora radio channels mapping
-impl From<LoraChannel> for u32 {    
-    fn from(value: LoraChannel) -> u32 {
-        match value {
-            LoraChannel::CH0 => common_config::LORA_125KHZ_CH0,
-            LoraChannel::CH1 => common_config::LORA_125KHZ_CH1,
-            LoraChannel::CH2 => common_config::LORA_125KHZ_CH2,
-            LoraChannel::CH3 => common_config::LORA_125KHZ_CH3,
-            LoraChannel::CH4 => common_config::LORA_125KHZ_CH4,
-            LoraChannel::CH5 => common_config::LORA_125KHZ_CH5,
-            LoraChannel::CH6 => common_config::LORA_125KHZ_CH6,
-        }
-    }    
-}
-impl TryFrom<u32> for LoraChannel {
-    type Error = errors::InvalidData;
-    
-    fn try_from(value: u32) -> Result<Self, Self::Error> {
-        match value {
-            common_config::LORA_125KHZ_CH0 => Ok(LoraChannel::CH0),
-            common_config::LORA_125KHZ_CH1 => Ok(LoraChannel::CH1),
-            common_config::LORA_125KHZ_CH2 => Ok(LoraChannel::CH2),
-            common_config::LORA_125KHZ_CH3 => Ok(LoraChannel::CH3),
-            common_config::LORA_125KHZ_CH4 => Ok(LoraChannel::CH4),
-            common_config::LORA_125KHZ_CH5 => Ok(LoraChannel::CH5),
-            common_config::LORA_125KHZ_CH6 => Ok(LoraChannel::CH6),
-            n => Err(errors::InvalidData(format!("{n} is not a frequency corrosponding to any Lora Channel!")))
-        }
-    }    
-}
-
 /// an assert macro similar to assert!, except an Err(AssertFailure) is returned as an result instead of panic.
 macro_rules! assert_no_panic {
     ($cond:expr $(,)?) => {{

@@ -2,12 +2,13 @@ use std::time;
 use std::{thread::sleep, time::Duration};
 
 use crate::common::AsRc;
-use crate::common_config::LORA_125KHZ_CH0;
+use crate::common_config::{DOWNLINK_SELECTED_CH, LORA_125KHZ_CH0};
 use crate::lr1121::LR1121;
 #[cfg(any(test, feature = "simulation"))]
 use crate::network::simulated_radio::SimulatedRadio;
 use crate::pubsub::Connection;
-use crate::{common_config::{DOWNLINK_CH, INITIAL_CODE_RATE, LORA_PREAMBLE_LENGTH}, data_handlers::{ConsumerManager, DataConsumer, ProducerManager}, network::{NetworkRadio, conn_mgr::RadioConnectionManager}, network_ids::{TypeID, TypeIDs}, packet::DecodedPacket, pubsub::{tism::TISMConnection, zenoh::ZenohConnection}};
+use crate::{common_config::{INITIAL_CODE_RATE, LORA_PREAMBLE_LENGTH}, data_handlers::{ConsumerManager, DataConsumer, ProducerManager}, network::{NetworkRadio, conn_mgr::RadioConnectionManager}, network_ids::{TypeID, TypeIDs}, packet::DecodedPacket, pubsub::{tism::TISMConnection, zenoh::ZenohConnection}};
+use std::process::exit;
 
 mod packet;
 mod common;
@@ -25,13 +26,33 @@ mod rocket_config;
 fn main() {
     println!("CPSS - LoRa Rocket Communication Node");
 
+    let config_path: String;
+
+    // parse arguments
+    #[cfg(any(feature = "simulation", feature = "hardware_attached_full_system"))]
+    { // skip parsing if feat sim or hwas
+        config_path = "./etc/hwas.toml".to_string();
+    }
+    #[cfg(not(any(feature = "simulation", feature = "hardware_attached_full_system")))]
+    {
+        let mut args = std::env::args();
+        if args.len() != 2 {
+            println!("Not Enough Arguments, Expected: <path to config.toml>");
+            exit(1);
+        } else {
+            let _ = args.next().expect("Expected executable name!");
+            config_path = args.next().expect("Config path should exist at this point.");
+        }
+    }
+    
+
     let mut producer_mgmt = ProducerManager::new();
     
     let mut consumer_mgmt= ConsumerManager::new();
 
     #[cfg(any(not(feature = "simulation"), feature = "hardware_attached_full_system"))]
     let (mut _tism, mut _zenoh) = {
-        let cfg =  config::parse("./etc/config.toml").expect("Unable to parse config!");
+        let cfg = config::parse(config_path).expect("Unable to parse config!");
         let mut generator = config::generator::Generator::new(
             || TISMConnection, || ZenohConnection::new());
 
@@ -102,7 +123,7 @@ fn main() {
 
         if !outbound_packets.is_empty() {
             let pkt_config = packet::OutgoingPacketConfig {
-                freq_hz: LORA_125KHZ_CH0,
+                freq_hz: DOWNLINK_SELECTED_CH,
                 modulation: packet::OutgoingPacketModulation::LoRa { 
                     bandwidth: common::Bandwidth::Low125khz, 
                     spread_factor: common::SpreadFactor::SF7, 

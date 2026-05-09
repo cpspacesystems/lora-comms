@@ -1,8 +1,8 @@
-use std::{rc::Rc, thread::sleep, time::{self, Duration}};
+use std::{process::exit, rc::Rc, thread::sleep, time::{self, Duration}};
 
 #[cfg(all(not(test), feature = "simulation"))]
 use crate::network::simulated_radio::SimulatedRadio;
-use crate::{common::{AsRc, Bandwidth, BufferType, LoraChannel, LoraCodeRate}, common_config::{ALLOW_CH_CHANGE, DOWNLINK_CH, INITIAL_CODE_RATE, LORA_PREAMBLE_LENGTH, UPLINK_CH}, data_handlers::{ConsumerManager, DataConsumer, ProducerManager, altimeter::Producer}, network::{NetworkRadio, conn_mgr::RadioConnectionManager}, packet::{DecodedPacket, OutgoingFrameBuilder, data_section::{DecodedDataSection, decode_data_sections}, transmission_ctrl::TSMCtrlInfo}, pubsub::{Connection, tism::TISMConnection, zenoh::{ZenohConnection, ZenohPublisher}}, sx1302::{SX1302, backing::{DeviceBackingAPI, PhysicalDevice}, conf::{DEFAULT_SX1302_CONFIG, SX1302Configuration}, error::TrySendError, types::{RadioStatus, Radios}}};
+use crate::{common::{AsRc, Bandwidth, BufferType, LoraCodeRate}, common_config::{ALLOW_CH_CHANGE, DOWNLINK_SELECTED_CH, INITIAL_CODE_RATE, LORA_PREAMBLE_LENGTH, UPLINK_SELECTED_CH}, data_handlers::{ConsumerManager, DataConsumer, ProducerManager, altimeter::Producer}, network::{NetworkRadio, conn_mgr::RadioConnectionManager}, packet::{DecodedPacket, OutgoingFrameBuilder, data_section::{DecodedDataSection, decode_data_sections}, transmission_ctrl::TSMCtrlInfo}, pubsub::{Connection, tism::TISMConnection, zenoh::{ZenohConnection, ZenohPublisher}}, sx1302::{SX1302, backing::{DeviceBackingAPI, PhysicalDevice}, conf::{DEFAULT_SX1302_CONFIG, SX1302Configuration}, error::TrySendError, types::{RadioStatus, Radios}}};
 use crate::network_ids::TypeIDs;
 
 #[cfg(test)]
@@ -24,7 +24,25 @@ mod config;
 fn main() {
     println!("CPSS - LoRa Ground Communication Node");
 
+    let config_path: String;
 
+    // parse arguments
+    #[cfg(any(feature = "simulation", feature = "hardware_attached_full_system"))]
+    { // skip parsing if feat sim or hwas
+        config_path = "./etc/hwas.toml".to_string();
+    }
+    #[cfg(not(any(feature = "simulation", feature = "hardware_attached_full_system")))]
+    {
+        let mut args = std::env::args();
+        if args.len() != 2 {
+            println!("Not Enough Arguments, Expected: <path to config.toml>");
+            exit(1);
+        } else {
+            let _ = args.next().expect("Expected executable name!");
+            config_path = args.next().expect("Config path should exist at this point.");
+        }
+    }
+    
     // start zenoh
 
     let mut producer_mgmt = ProducerManager::new();
@@ -33,7 +51,7 @@ fn main() {
     
     #[cfg(any(not(feature = "simulation"), feature = "hardware_attached_full_system"))]
     let (mut _tism, mut _zenoh) = {
-        let cfg =  config::parse("./etc/config.toml").unwrap();
+        let cfg =  config::parse(config_path).unwrap();
         let mut generator = config::generator::Generator::new(
             || TISMConnection, || ZenohConnection::new());
 
@@ -108,7 +126,7 @@ fn main() {
 
         if !outbound_packets.is_empty() {
             let pkt_config = packet::OutgoingPacketConfig {
-                freq_hz: UPLINK_CH.into(),
+                freq_hz: UPLINK_SELECTED_CH,
                 modulation: packet::OutgoingPacketModulation::LoRa { 
                     bandwidth: Bandwidth::Low125khz, 
                     spread_factor: common::SpreadFactor::SF7, 

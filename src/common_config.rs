@@ -1,6 +1,6 @@
 use std::time;
 
-use crate::{common::{LoraChannel, LoraCodeRate}, network, network_ids, packet::OutgoingFrameBuilder};
+use crate::{common::{LoraCodeRate}, network, network_ids, packet::OutgoingFrameBuilder};
 
 
 // must match the payload arr size in loragw_hal, or smaller
@@ -21,11 +21,11 @@ pub const LORA_125KHZ_CH4: u32 = BASE_FREQ + 2 * FREQ_OFFSET; // DOWNLINK
 pub const LORA_125KHZ_CH5: u32 = BASE_FREQ - 3 * FREQ_OFFSET; // UPLINK
 pub const LORA_125KHZ_CH6: u32 = BASE_FREQ + 3 * FREQ_OFFSET; // DOWNLINK
 
-pub const LORA_PREAMBLE_LENGTH: u16 = 8; 
-
-pub const DOWNLINK_CH: LoraChannel = LoraChannel::CH0;
-pub const UPLINK_CH: LoraChannel = LoraChannel::CH3;
+pub const DOWNLINK_SELECTED_CH: u32 = LORA_125KHZ_CH0;
+pub const UPLINK_SELECTED_CH: u32 = LORA_125KHZ_CH3;
 pub const ALLOW_CH_CHANGE: bool = false;
+
+pub const LORA_PREAMBLE_LENGTH: u16 = 8;
 
 pub const INITIAL_CODE_RATE: LoraCodeRate = LoraCodeRate::CR1;
 
