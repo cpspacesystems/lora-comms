@@ -4,6 +4,11 @@ mod lr1121wrapper;
 use lr1121wrapper::{Context, begin, end, getSNR, init, receive, setCodingRate, setFrequency, setSpreadingFactor, transmit};
 use crate::{common::{BufferType, SpreadFactor, LoraCodeRate}, common_config::{UPLINK_TRANSMIT_TIMEOUT_PERIOD, LORA_125KHZ_CH0, LORA_PREAMBLE_LENGTH, INITIAL_CODE_RATE}, errors::{self, AnyError}, network::{NetworkRadio, SendError}, packet::{self, OutgoingPacketConfig, PacketMetadata, ReceivedPacket}};
 
+const RADIOLIB_ERR_TX_TIMEOUT: i32 = -5;
+const RADIOLIB_ERR_NONE: i32 = 0;
+
+
+
 pub struct LR1121Config {
     pub spi_channel:    u8,
     pub spi_speed:      u32,
@@ -15,20 +20,20 @@ pub struct LR1121Config {
     pub busy:           u32,
     pub dio8:           u32,
 
-    pub freq:            f32,
-    pub bw:              f32,
+    pub freq:            f32, //MHz
+    pub bw:              f32, //kHz
     pub sf:              u8,
     pub cr:              u8,
     pub sync_word:       u8,
-    pub power:           i8,
+    pub power:           i8,  //dBm
     pub preamble_length: u16,
     pub tcxo_voltage:    f32,
 }
 
 pub const DEFAULT_LR1121_CONFIG: LR1121Config = LR1121Config {
-    spi_channel: 0, spi_speed: 16_000_000, spi_device: 7, 
-    gpio_device: 4, cs: 8, irq: 0, 
-    rst: 0, busy: 0, dio8: 0, 
+    spi_channel: 0, spi_speed: 16_000_000, spi_device: 0, 
+    gpio_device: 4, cs: 18, irq: 0, 
+    rst: 5, busy: 6, dio8: 0, 
     freq: (LORA_125KHZ_CH0) as f32, bw: 125.0, sf: 0, 
     cr: 0x1, sync_word: 0, power: 22,
     preamble_length: LORA_PREAMBLE_LENGTH, tcxo_voltage: 3.3
@@ -45,14 +50,14 @@ impl LR1121 {
         let new_ctx = unsafe {
             init(
                 config.spi_channel,    //spiChannel
-                config.spi_speed,      //spiSpeed
-                config.spi_device,     //spiDevice
+                config.spi_speed,        //spiSpeed
+                config.spi_device,      //spiDevice
                 config.gpio_device,    //gpioDevice
-                config.cs,            //CS
-                config.irq,           //IRQ
-                config.rst,           //RST
-                config.busy,          //BUSY
-                config.dio8          //DIO8
+                config.cs,                        //CS
+                config.irq,                       //IRQ
+                config.rst,                       //RST
+                config.busy,                      //BUSY
+                config.dio8                       //DIO8
             )
         };
         
@@ -158,8 +163,8 @@ impl NetworkRadio for LR1121 {
         
         let result = unsafe {
             transmit(self.ctx, delay, payload.as_ptr(), payload.len(), address)
-        }; //payload maybe shouldn't be a reference
-        if result != 0 && result != -5 {
+        };
+        if result != RADIOLIB_ERR_NONE && result != RADIOLIB_ERR_TX_TIMEOUT {
             return Err(format!("INFO LR1121: Encountered error while transmitting: {}", result).as_str().into());
         }
         Ok(time::Duration::ZERO)
