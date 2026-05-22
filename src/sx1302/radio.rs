@@ -662,19 +662,19 @@ mod tests {
         assert_eq!(support_run_radio_status(RX_OFF, TX_SCHEDULED),                  RadioStatus::Busy);
         assert_eq!(support_run_radio_status(RX_OFF, TX_EMITTING),                   RadioStatus::Busy);
         assert_eq!(support_run_radio_status(RX_OFF, TX_STATUS_UNKNOWN),             RadioStatus::Unknown);
-        assert_eq!(support_run_radio_status(RX_OFF, TX_FREE),                       RadioStatus::Unknown);
+        assert_eq!(support_run_radio_status(RX_OFF, TX_FREE),                       RadioStatus::Avaliable);
 
         assert_eq!(support_run_radio_status(RX_SUSPENDED, TX_OFF),                  RadioStatus::Busy);
         assert_eq!(support_run_radio_status(RX_SUSPENDED, TX_SCHEDULED),            RadioStatus::Busy);
         assert_eq!(support_run_radio_status(RX_SUSPENDED, TX_EMITTING),             RadioStatus::Busy);
         assert_eq!(support_run_radio_status(RX_SUSPENDED, TX_STATUS_UNKNOWN),       RadioStatus::Busy);
-        assert_eq!(support_run_radio_status(RX_SUSPENDED, TX_FREE),                 RadioStatus::Busy);
+        assert_eq!(support_run_radio_status(RX_SUSPENDED, TX_FREE),                 RadioStatus::Avaliable);
 
         assert_eq!(support_run_radio_status(RX_STATUS_UNKNOWN, TX_OFF),             RadioStatus::Unknown);
         assert_eq!(support_run_radio_status(RX_STATUS_UNKNOWN, TX_SCHEDULED),       RadioStatus::Busy);
         assert_eq!(support_run_radio_status(RX_STATUS_UNKNOWN, TX_EMITTING),        RadioStatus::Busy);
         assert_eq!(support_run_radio_status(RX_STATUS_UNKNOWN, TX_STATUS_UNKNOWN),  RadioStatus::Unknown);
-        assert_eq!(support_run_radio_status(RX_STATUS_UNKNOWN,TX_FREE),             RadioStatus::Unknown);
+        assert_eq!(support_run_radio_status(RX_STATUS_UNKNOWN,TX_FREE),             RadioStatus::Avaliable);
 
     }
     // helper function for test_get_radio_status
