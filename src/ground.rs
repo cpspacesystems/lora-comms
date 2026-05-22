@@ -103,9 +103,8 @@ fn main() {
     }
 
     // start sx1302
-    let mut f_exit = false;
     let mut last_loop_time = time::Instant::now();
-    while !f_exit {
+    loop {
         let mut decoded_packets: Vec<DecodedPacket> = Vec::new();
         // fetch any new packets 
         match radio.try_receive() {

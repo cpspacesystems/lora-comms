@@ -2,16 +2,49 @@ use std::{ptr::null, time};
 
 mod lr1121wrapper;
 use lr1121wrapper::{Context, begin, end, getSNR, init, receive, setCodingRate, setFrequency, setSpreadingFactor, transmit};
-use crate::{common::{BufferType, SpreadFactor, LoraCodeRate}, common_config::{UPLINK_TRANSMIT_TIMEOUT_PERIOD, LORA_125KHZ_CH0, LORA_PREAMBLE_LENGTH, INITIAL_CODE_RATE}, errors::{self, AnyError}, network::{NetworkRadio, SendError}, packet::{self, OutgoingPacketConfig, PacketMetadata, ReceivedPacket}};
+use crate::{common::{Bandwidth, BufferType, LoraCodeRate, SpreadFactor}, common_config::{INITIAL_CODE_RATE, LORA_125KHZ_CH0, LORA_PREAMBLE_LENGTH, UPLINK_TRANSMIT_TIMEOUT_PERIOD}, errors::{self, AnyError}, network::{NetworkRadio, SendError}, packet::{self, OutgoingPacketConfig, PacketMetadata, ReceivedPacket}};
 
 const RADIOLIB_ERR_TX_TIMEOUT: i32 = -5;
 const RADIOLIB_ERR_NONE: i32 = 0;
 
+/// Specific PIN for lr1121 is not connected or shouldn't be used
+pub const LR1121_NO_CONNECT: u32 = 0xFFFFFFFF;
 
+/// LR1121 Frequency, in Mhz
+#[derive(Debug, Clone, Copy)]
+pub struct LR112FreqMhz(pub f32);
+impl LR112FreqMhz {
+    /// conversion from hz to Mhz
+    pub const fn from_hz(value: u32) -> Self {
+        Self(value as f32 / 1_000_000.0)
+    }
+    pub const fn as_hz(&self) -> u32 {
+        (self.0 * 1_000_000.0) as u32
+    }
+}
+impl From<LR112FreqMhz> for f32 {
+    fn from(value: LR112FreqMhz) -> Self {
+        value.0
+    }
+}
+
+/// converts from bandwidth to radiolib acceptable bandwidth
+const fn cvt_bandwidth(bw: Bandwidth) -> f32 {
+    match bw {
+        Bandwidth::Low125khz => 125.0,
+        Bandwidth::Mid250khz => 250.0,
+        Bandwidth::High500khz => 500.0,
+    }
+}
+
+/// converts from LoraCodeRate to radiolib acceptable coderate
+const fn cvt_coderate(cr: LoraCodeRate) -> u8 {
+    (cr as u8) + 4
+}
 
 pub struct LR1121Config {
     pub spi_channel:    u8,
-    pub spi_speed:      u32,
+    pub spi_speed_hz:      u32,
     pub spi_device:     u8,
     pub gpio_device:    u8,
     pub cs:             u32,
@@ -20,10 +53,10 @@ pub struct LR1121Config {
     pub busy:           u32,
     pub dio8:           u32,
 
-    pub freq:            f32, //MHz
-    pub bw:              f32, //kHz
-    pub sf:              u8,
-    pub cr:              u8,
+    pub receive_freq:            LR112FreqMhz, //MHz
+    pub receive_bw:              Bandwidth, //kHz
+    pub receive_sf:              SpreadFactor,
+    pub receive_cr:              LoraCodeRate,
     pub sync_word:       u8,
     pub power:           i8,  //dBm
     pub preamble_length: u16,
@@ -31,11 +64,13 @@ pub struct LR1121Config {
 }
 
 pub const DEFAULT_LR1121_CONFIG: LR1121Config = LR1121Config {
-    spi_channel: 0, spi_speed: 16_000_000, spi_device: 0, 
-    gpio_device: 4, cs: 18, irq: 0, 
-    rst: 5, busy: 6, dio8: 0, 
-    freq: (LORA_125KHZ_CH0) as f32, bw: 125.0, sf: 0, 
-    cr: 0x1, sync_word: 0, power: 22,
+    spi_channel: 0, spi_device: 0, spi_speed_hz: 16_000_000, 
+    gpio_device: 4, 
+    cs: LR1121_NO_CONNECT, irq: LR1121_NO_CONNECT, rst: LR1121_NO_CONNECT, busy: LR1121_NO_CONNECT, dio8: LR1121_NO_CONNECT, 
+    receive_freq: LR112FreqMhz::from_hz(LORA_125KHZ_CH0), 
+    receive_bw: Bandwidth::Low125khz, 
+    receive_sf: SpreadFactor::SF7, 
+    receive_cr: LoraCodeRate::CR1, sync_word: 0x12, power: 22,
     preamble_length: LORA_PREAMBLE_LENGTH, tcxo_voltage: 3.3
 };
 
@@ -50,7 +85,7 @@ impl LR1121 {
         let new_ctx = unsafe {
             init(
                 config.spi_channel,    //spiChannel
-                config.spi_speed,        //spiSpeed
+                config.spi_speed_hz,        //spiSpeed
                 config.spi_device,      //spiDevice
                 config.gpio_device,    //gpioDevice
                 config.cs,                        //CS
@@ -76,15 +111,15 @@ impl NetworkRadio for LR1121 {
     fn configure(&mut self) -> Result<(), Self::ConfigureError> {
         let state = unsafe {
             begin(
-                self.ctx,                              //ctx
-                self.config.freq,                              //freq MHz
-                self.config.bw,                                //bw
-                self.config.sf,                                //sf
-                self.config.cr,                                //cr
-                self.config.sync_word,               //sync word
-                self.config.power,                             //power
-                self.config.preamble_length,   //preamble length
-                self.config.tcxo_voltage          //tcxo voltage
+                self.ctx,
+                self.config.receive_freq.into(),
+                cvt_bandwidth(self.config.receive_bw),
+                self.config.receive_sf.into(),
+                cvt_coderate(self.config.receive_cr),
+                self.config.sync_word,
+                self.config.power,
+                self.config.preamble_length,
+                self.config.tcxo_voltage
             )
         };
         if state != 0 {
@@ -102,36 +137,20 @@ impl NetworkRadio for LR1121 {
         let mut buffer = [0u8; 256]; 
         let data_ptr = buffer.as_mut_ptr();
         let result = unsafe {
-            if let s = setFrequency(self.ctx, self.config.freq) && s != 0 { return Err(format!("set FREQ failed {}", s).as_str().into()); };
+            if let s = setFrequency(self.ctx, self.config.receive_freq.into()) && s != 0 { return Err(format!("set FREQ failed {}", s).as_str().into()); };
+            if let s = setCodingRate(self.ctx, cvt_coderate(self.config.receive_cr), false) && s != 0 { return Err(format!("set CR failed {}", s).as_str().into()); };
             receive(self.ctx, data_ptr, buffer.len(), UPLINK_TRANSMIT_TIMEOUT_PERIOD.as_millis() as u32)
         };
 
 
         if result >= 0 {
-            let sf = match self.config.sf {
-                5 => SpreadFactor::SF5,
-                6 => SpreadFactor::SF6,
-                7 => SpreadFactor::SF7,
-                8 => SpreadFactor::SF8,
-                9 => SpreadFactor::SF9,
-                _ => panic!("invalid spread factor {}", self.config.sf),
-            };
-            let cr = match self.config.cr - 4 {
-                1 => LoraCodeRate::CR1,
-                2 => LoraCodeRate::CR2,
-                3 => LoraCodeRate::CR3,
-                4 => LoraCodeRate::CR4,
-                _ => panic!("invalid coderate {}", self.config.cr),
-            };
-
             let metadata = PacketMetadata {
                 length: result as usize,
                 snr: unsafe {getSNR(self.ctx)},
-                frequency: self.config.freq as u32,
-                sf: sf,
-                coderate: cr
+                frequency: self.config.receive_freq.as_hz(),
+                sf: self.config.receive_sf,
+                coderate: self.config.receive_cr
             };
-
 
            let packets = vec![ReceivedPacket {
                 data: buffer[..result as usize].to_vec(),
@@ -155,8 +174,8 @@ impl NetworkRadio for LR1121 {
         match packet_config.modulation {
             crate::packet::OutgoingPacketModulation::LoRa { spread_factor, coderate, .. } => unsafe {
                 if let s = setSpreadingFactor(self.ctx, spread_factor.into(), false) && s != 0 { return Err(format!("set SF failed {}", s).as_str().into()); };
-                if let s = setCodingRate(self.ctx, 4 + coderate as u8, false) && s != 0 { return Err(format!("set CR failed {}", s).as_str().into()); };
-                if let s = setFrequency(self.ctx, packet_config.freq_hz as f32 / 1_000_000.0) && s != 0 { return Err(format!("set FREQ failed {}", s).as_str().into()); };
+                if let s = setCodingRate(self.ctx, cvt_coderate(coderate), false) && s != 0 { return Err(format!("set CR failed {}", s).as_str().into()); };
+                if let s = setFrequency(self.ctx, LR112FreqMhz::from_hz(packet_config.freq_hz).into()) && s != 0 { return Err(format!("set FREQ failed {}", s).as_str().into()); };
             },
             _ => return Err("Unsupported modulation".into())
         }
