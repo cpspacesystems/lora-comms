@@ -80,9 +80,10 @@ impl<'a> OutgoingFrameBuilder<'a> {
     fn create_final_packet(tsm: &TSMCtrlInfo, packet: &mut BufferType) {
         debug!(target: "Packet", "COMPOSE {}, EOT {}", tsm.get_packet_number(), tsm.is_eot());
         let data_sections = std::mem::take(packet); // gets an owned view of packet, which should only contain data sections right now
+        let packed_ds = capnpack::pack(&data_sections); // perform packing on data to remove impact of padding bytes and optimize integer transfer
         let _ = std::mem::replace(packet, [
-            tsm.to_wire((Self::PACKET_FIXED_SIZE + data_sections.len()) as u8), 
-            data_sections
+            tsm.to_wire((Self::PACKET_FIXED_SIZE + packed_ds.len()) as u8), 
+            packed_ds
         ].concat());
     }
 
@@ -172,7 +173,9 @@ impl ReceivedPacket {
     pub fn decode(self, consumer_mg: &ConsumerManager) -> Result<DecodedPacket, AnyError> {
         let tsm_ctrl = TSMCtrlInfo::try_from_wire(&self.data[0..2], self.meta.length as u8)?;
     
-        let ds = decode_data_sections(&consumer_mg, &self.data[2..])?;
+        let ds = decode_data_sections(&consumer_mg, 
+            &capnpack::unpack(&self.data[2..], 260)?
+        )?;
         Ok(DecodedPacket { meta: self.meta, tsm_ctrl, data_sections: ds })
     } 
 }
@@ -266,8 +269,9 @@ mod tests {
                 .gather_by_id(TypeIDs::Test2).unwrap()
                 .gather_by_id(TypeIDs::Test3).unwrap()
                 .build(&mut TSMCtrlInfo::default()),
-            [[TSMCtrlInfo::new(1_U7, true).to_wire(2+1+3+1+11+1+64),
-                vec![0xFD], vec![0x00; 64], vec![0xFC], vec![0x00; 11], vec![0xFB], vec![0x00; 3]].concat()].to_vec() 
+            [[TSMCtrlInfo::new(1_U7, true).to_wire(10), // actual is 83, packed is 10
+                capnpack::pack(&[vec![0xFD], vec![0x00; 64], vec![0xFC], vec![0x00; 11], vec![0xFB], vec![0x00; 3]].concat())
+            ].concat()].to_vec() 
         );
     }
 
@@ -275,15 +279,15 @@ mod tests {
     fn test_consume_incoming_packet() {
         let consumers = ConsumerManager::new();
 
-        assert!(matches!(ReceivedPacket { data: vec![common_config::LORA_REGONATION_CODE ^ 0x0, 0x0, 0xEE], meta: PacketMetadata::default() }.decode(&consumers), Err(e) if e.is::<errors::DecodeUnknownTypeError>()));
+        assert!(matches!(ReceivedPacket { data: [vec![common_config::LORA_REGONATION_CODE ^ 0x0, 0x0], capnpack::pack(&[0xEE; 1])].concat(), meta: PacketMetadata::default() }.decode(&consumers), Err(e) if e.is::<errors::DecodeUnknownTypeError>()));
         assert!(ReceivedPacket { data: vec![common_config::LORA_REGONATION_CODE ^ 0x0, 0x0], meta: PacketMetadata::default() }.decode(&consumers).is_ok());
 
+        let p = capnpack::pack([vec![0xFB], vec![0x00; 3], vec![0xFC], vec![0x00; 11], vec![0xFD], vec![0x00; 64]].concat().as_slice());
+        let l = 2 + p.len();
         assert!(
             ReceivedPacket { data: [
-                TSMCtrlInfo::new(120_U7, true).to_wire(83),
-                vec![0xFB], vec![0x00; 3], vec![0xFC], vec![0x00; 11], vec![0xFD], vec![0x00; 64]
-                ].concat(),
-            meta: PacketMetadata { length: 83, ..Default::default() } }
+                TSMCtrlInfo::new(120_U7, true).to_wire(l as u8), p].concat(),
+            meta: PacketMetadata { length: l, ..Default::default() } }
         .decode(&consumers).is_ok());
 
         

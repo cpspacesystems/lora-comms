@@ -7,7 +7,7 @@ use crate::{common::{LoraCodeRate}, network, network_ids, packet::OutgoingFrameB
 // must also fit into a u8 (aka <= 255)
 pub const MAX_PAYLOAD_SIZE: usize = 255;
 pub const PACKER_MAX_SIZE: usize = 
-    MAX_PAYLOAD_SIZE - OutgoingFrameBuilder::PACKET_FIXED_SIZE - size_of::<network_ids::TypeID>();
+    MAX_PAYLOAD_SIZE - OutgoingFrameBuilder::PACKET_FIXED_SIZE - size_of::<network_ids::TypeID>() - 3; // minus 3 is for potential capnpack worst case overhead 
 // pub const PACKER_MAX_SIZE: usize = 100;
 
 pub const BASE_FREQ: u32 = 907300000;

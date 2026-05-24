@@ -72,7 +72,7 @@ impl TSMCtrlInfo {
                 data[1] & 0x1 == 0x1,
             ))
         } else {
-            Err(errors::UnregonizedPacket.into())
+            Err(errors::UnrecognizedPacket.into())
         }
     }
 }

@@ -55,4 +55,4 @@ pub struct ParseFlatbufferAltimeterError(pub String);
 
 #[derive(Error, Debug, PartialEq)]
 #[error("The packet received is not regonized as a packet broadcasted by a CPSS system!")]
-pub struct UnregonizedPacket;
+pub struct UnrecognizedPacket;

@@ -3,4 +3,9 @@
         "loragw_com.h": "c",
         "stdint.h": "c"
     },
+    "cSpell.words": [
+        "coeff",
+        "loragw",
+        "rssi"
+    ],
 }
