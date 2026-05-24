@@ -1,11 +1,12 @@
 
 
-use std::default;
+use std::{default, fmt};
 
 use crate::{common_config, data_handlers::{ConsumerManager, ProducerManager}, errors, network_ids::TypeID, packet::{data_section::{DecodedDataSection, create_data_section, decode_data_sections}, transmission_ctrl::{TSM_CTRL_SIZE, TSMCtrlInfo}}};
 use crate::network_ids::TypeIDs;
 use crate::common::*;
 use crate::errors::*;
+use log::{debug, error};
 use thiserror::Error;
 
 pub mod data_section;
@@ -45,38 +46,39 @@ impl<'a> OutgoingFrameBuilder<'a> {
         Ok(self)
     }
 
-    /// gather data sections from all avaliable producers
+    /// gather data sections from all available producers
     /// <br> This function will silently skip over any producers that errored while trying to produce
     pub fn gather_all(&mut self) {
+        let mut ids = Vec::new();
         for (id, rc) in self.producer_mg.iter_producers() {
             let mut p = rc.borrow_mut();
             let data = match p.produce() {
                 Ok(Some(v)) => v,
                 Ok(None) => continue,
                 Err(e) => { 
-                    println!("Encountered errors while producing id {}: {}", *id as u8, e);
+                    error!(target: "Packet", "Encountered errors while producing id {}: {}", *id as u8, e);
                     continue;
                 } 
             };
 
-            print!("P {} ", id);
-
             let ds = match create_data_section(*id, data) {
                 Ok(v) => v,
                 Err(e) => { 
-                    println!("Encountered errors while producing id {}: {}", *id as u8, e);
+                    error!(target: "Packet", "Encountered errors while creating DS with id {}: {}", *id as u8, e);
                     continue;
                 }
             }; 
 
+            ids.push(id);
             self.data_sections.push(ds);
         };
-        println!();
+
+        debug!(target: "Packet", "Encode IDs: {:?}", ids);
     }
 
     #[inline]
     fn create_final_packet(tsm: &TSMCtrlInfo, packet: &mut BufferType) {
-        println!("SEND: {}", tsm.get_packet_number());
+        debug!(target: "Packet", "COMPOSE {}, EOT {}", tsm.get_packet_number(), tsm.is_eot());
         let data_sections = std::mem::take(packet); // gets an owned view of packet, which should only contain data sections right now
         let _ = std::mem::replace(packet, [
             tsm.to_wire((Self::PACKET_FIXED_SIZE + data_sections.len()) as u8), 
@@ -84,7 +86,7 @@ impl<'a> OutgoingFrameBuilder<'a> {
         ].concat());
     }
 
-    /// builds new frame (into mutiple packets if needed), consumes all data in internal buffer
+    /// builds new frame (into multiple packets if needed), consumes all data in internal buffer
     ///
     /// this builder can be reused for a new frame 
     pub fn build(&mut self, last_tsm: &mut TSMCtrlInfo) -> Vec<BufferType> {        
@@ -108,7 +110,7 @@ impl<'a> OutgoingFrameBuilder<'a> {
             return packets;
         }
 
-        // add tansmission control info
+        // add transmission control info
         let end_idx  = packets.len() - 1;
         for packet in &mut packets[0..end_idx] {
             last_tsm.advance(false);
@@ -133,6 +135,14 @@ pub struct PacketMetadata {
     pub frequency: u32, 
     pub sf: SpreadFactor,
     pub coderate: LoraCodeRate
+}
+
+impl fmt::Display for PacketMetadata {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        write!(f, "FREQ {}, {:?}, {:?}, LEN {}, SNR {}", 
+            self.frequency, self.sf, self.coderate, self.length, self.snr
+        )
+    }
 }
 
 #[derive(Debug)]
@@ -170,7 +180,7 @@ impl ReceivedPacket {
 /// Outgoing/Transmit Packet Modulation configuration 
 #[derive(Debug, Clone, Copy, PartialEq)]
 pub enum OutgoingPacketModulation {
-    /// continous wave
+    /// continuous wave
     CW {
         /// frequency offset from Radio Tx frequency
         freq_offset_hz: i8
@@ -212,11 +222,11 @@ pub enum OutgoingPacketTiming {
     /// 
     /// timestamp or delay in microseconds for to trigger TX start
     Timestamped(u32),
-    /// send packet on next GPS/PPS pluse
+    /// send packet on next GPS/PPS pulse
     GPSTriggered,
 }
 
-/// configuration of an packet to be trasmitted
+/// configuration of an packet to be transmitted
 #[derive(Debug, Clone, Copy, PartialEq)]
 pub struct OutgoingPacketConfig {
     /// The center frequency that the packet will be transmitted at. 

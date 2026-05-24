@@ -2,6 +2,8 @@ use std::cell::RefCell;
 use std::fmt::Debug;
 use std::rc::Rc;
 
+use log::debug;
+
 use crate::{common::*, errors};
 use crate::data_handlers::{ConsumerManager, DataConsumer};
 use crate::errors::*;
@@ -47,6 +49,7 @@ impl PartialEq for DecodedDataSection {
 pub fn decode_data_sections<'a>(consumer_mg: &'a ConsumerManager, data: &[u8]) -> Result<Vec<DecodedDataSection>, errors::AnyError> {
     let mut res: Vec<DecodedDataSection> = Vec::new();
     let mut head = 0; 
+    let mut ids = Vec::new();
     while head < data.len() {
         // parse and resolve id
         let id = data[head];   
@@ -60,12 +63,12 @@ pub fn decode_data_sections<'a>(consumer_mg: &'a ConsumerManager, data: &[u8]) -
             return Err(errors::InvalidData(format!("ID {} expected data of size {}, but go data with size of {}!", id, head + size, size)).into());
         }
         let bytes = data[head..head + size].to_vec();
-        print!("C {} ", id);
+        ids.push(id);
         res.push(DecodedDataSection {id, data_consumer, bytes});
         head += size;
     }
 
-    println!();
+    debug!(target: "Packet", "Decode IDs: {:?}", ids);
     Ok(res)
 }
 

@@ -113,8 +113,6 @@ impl<T, Z> Generator<T, Z>
         let cons_packed = self.pack_rate_map(c);
         self.add_packed_poll_rate_consumers(cons_packed);
 
-        println!("");
-
         for p in self.producers {
             producer_mgmt.add_by_id(id_provider.next_producer(), p);
         }
@@ -230,7 +228,7 @@ impl<T, Z> Generator<T, Z>
     fn hwas_spawn_publisher(&mut self, size: usize, network: &Network, path: &str) {
         match network {
             Network::TISM => simulation::hardware_attached::spawn_tism(size, path.to_string()),
-            Network::Zenoh => simulation::hardware_attached::spwan_zenoh(size, path.to_string()),
+            Network::Zenoh => simulation::hardware_attached::spawn_zenoh(size, path.to_string()),
         }
     }
 }

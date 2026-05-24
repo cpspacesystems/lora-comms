@@ -1,5 +1,7 @@
 use std::{any::Any, cell::{Ref, RefCell, RefMut}, collections::VecDeque, net::{SocketAddr, SocketAddrV4}, num::ParseIntError, sync::{Arc, RwLock, atomic::AtomicUsize}, time};
 
+use base64::Engine;
+use log::{debug, error, info, trace};
 use tokio::io::{AsyncReadExt, AsyncWriteExt};
 
 use crate::{common::{Bandwidth, BufferType, LoraCodeRate, SpreadFactor}, errors::AnyError, network::{NetworkRadio, SendError}, packet::{OutgoingPacketConfig, OutgoingPacketModulation, PacketMetadata, ReceivedPacket}};
@@ -72,7 +74,12 @@ impl SharedData {
 
         std::mem::swap(&mut *mutex, &mut pending);
 
-        received.into_iter().map(|x| x.1).collect()
+        received.into_iter().map(|x| {
+            debug!(target: "SIM", "IN: {}", x.1.meta);
+            trace!(target: "SIM", "ICAP: {}", base64::prelude::BASE64_STANDARD.encode(x.1.data.as_slice()));
+
+            x.1
+        }).collect()
     }
 }
 
@@ -110,7 +117,7 @@ impl SimulatedRadio {
             let shread_ref = shared.clone();
             tokio::spawn(async move {
                 if let Err(e) = Self::tokio_task_receive(shread_ref, id, &mut stream, inc_addr).await {
-                    println!("{}", e);
+                    error!(target: "SIM", "Tokio receive error: {e}");
                 };
             });
         }
@@ -119,8 +126,7 @@ impl SimulatedRadio {
     async fn tokio_task_receive(shared: Arc<SharedData>, id: usize, stream: &mut tokio::net::TcpStream, inc_addr: std::net::SocketAddr) -> Result<(), AnyError>{
         let mut inc_data = String::new();
         let bytes_read = stream.read_to_string(&mut inc_data).await?;
-        // println!("NET #{:05} -> Read {} bytes from {}", id, bytes_read, inc_addr);
-        // println!("{}", inc_data);
+        debug!(target: "SIM", "NET #{:05} -> Read {} bytes from {}", id, bytes_read, inc_addr);
         
         let mut inc_data_iter = inc_data.split("\r\n");
         
@@ -173,7 +179,7 @@ impl SimulatedRadio {
             // decode into received packets
             .filter_map(|l| 
                 if l.len() == Self::SIM_HTTP_DTYPE_FORMAT.len() {
-                    // decode dara
+                    // decode data
                     let p = Some(ReceivedPacket {
                         data: if let Ok(d) = hex::decode(l[4]) { d } else { return None },
                         meta: PacketMetadata {
@@ -261,7 +267,7 @@ impl NetworkRadio for SimulatedRadio {
     fn try_receive(&mut self) -> Result<Vec<crate::packet::ReceivedPacket>, Self::ReceiveError> {
         let now = time::Instant::now();
         if now < self.send_finish {
-            return Err("Last packet not yet fininished sending!".into());
+            return Err("Last packet not yet finished sending!".into());
         }
 
         Ok(self.shared.get_packets())
@@ -280,7 +286,7 @@ impl NetworkRadio for SimulatedRadio {
                 &mut 0_f64, &mut 0, &mut 0
             );
             
-            // calculate and set statstics 
+            // calculate and set statistics 
             self.outgoing_byterate.push_back((now, payload.len()));
             self.send_finish = now.checked_add(toa).expect("Simulation ran too long to point of time overflow."); 
 
@@ -296,7 +302,7 @@ impl NetworkRadio for SimulatedRadio {
             let bytes: usize = self.outgoing_byterate.iter()
                 .map(|stat| stat.1)
                 .sum();
-            println!("Outbound bitrate: {:.2} kbps per second.", (bytes * 8) as f64/1000.0/10.0);
+            info!(target: "SIM", "Outbound bitrate: {:.2} Kbps per second.", (bytes * 8) as f64/1000.0/10.0);
 
             Ok(toa)
         } else {

@@ -16,10 +16,12 @@ pub fn get_tokio_or_init() -> tokio::runtime::Handle {
 pub mod hardware_attached {
     use std::{process, thread::sleep, time};
 
-    use crate::{common_config, pubsub::{self, Connection}, simulation::{data_generator::DataSource, get_tokio_or_init}};
+    use log::info;
+
+use crate::{common_config, pubsub::{self, Connection}, simulation::{data_generator::DataSource, get_tokio_or_init}};
 
     pub fn spawn_tism(size: usize, path: String) {
-        println!("HWAS: Spawn tism pub size of {} at {}", size, path);
+        info!(target: "HWAS", "Spawn tism pub size of {} at {}", size, path);
 
         std::thread::spawn(move || {
             let publisher = pubsub::tism::TISMConnection.publish(size, path);
@@ -28,8 +30,8 @@ pub mod hardware_attached {
         });
     }
 
-    pub fn spwan_zenoh(size: usize, path: String) {
-        println!("HWAS: Spawn Zenoh pub size of {} at {}", size, path);
+    pub fn spawn_zenoh(size: usize, path: String) {
+        info!(target: "HWAS", "Spawn Zenoh pub size of {} at {}", size, path);
 
         std::thread::spawn(move || {
             let publisher = pubsub::zenoh::ZenohConnection::new().publish(size, path);

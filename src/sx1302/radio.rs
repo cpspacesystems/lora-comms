@@ -1,5 +1,8 @@
 use std::{cell::UnsafeCell, error::Error, ffi, fmt, mem::{ManuallyDrop, MaybeUninit}, ops::DerefMut, sync::LazyLock, time};
 
+use base64::Engine;
+use log::{debug, error, info, trace, warn};
+
 use crate::{common::{BufferType, assert_np}, errors::AnyError, network::{self, NetworkRadio}, packet::{OutgoingPacketConfig, OutgoingPacketModulation, OutgoingPacketTiming, PacketMetadata, ReceivedPacket}, sx1302::{self, backing::{DeviceBackingAPI, PhysicalDevice}, bindings_loragw_hal::{self, LGW_HAL_ERROR, LGW_HAL_SUCCESS, lgw_com_type_t, lgw_conf_board_s, lgw_conf_chan_lbt_s, lgw_conf_demod_s, lgw_conf_ftime_s, lgw_conf_rxif_s, lgw_conf_rxrf_s, lgw_ftime_mode_t, lgw_pkt_rx_s, lgw_pkt_tx_s, lgw_radio_type_t, lgw_rssi_tcomp_s, lgw_time_on_air, lgw_tx_gain_lut_s, lgw_tx_gain_s}, conf::{self}, error::{ConfigureError, FailedToGetStatus, FailedToGetTemp, FailedToStart, FailedToStop, FailedToTryReceive, TrySendError}}}; 
 use crate::sx1302::types::*;
 use crate::common_config::MAX_PAYLOAD_SIZE;
@@ -19,7 +22,7 @@ impl<'a> Default for SX1302<'a, PhysicalDevice> {
     /// creates a new SX1302 with a default config using conf::DEFAULT_SX1302_CONFIG and backed by the Physcial device
     fn default() -> SX1302<'a, PhysicalDevice> {
         // no real allocation done here, PhysicalDevice is a zero byte and ManuallyDrop is transparent
-        // apprently rust can't do const promotion for ZST as of this line being written, so ManuallyDrop it is
+        // apparently rust can't do const promotion for ZST as of this line being written, so ManuallyDrop it is
         let mut b = ManuallyDrop::new(PhysicalDevice);
         Self::new(conf::DEFAULT_SX1302_CONFIG, unsafe {&mut *&raw mut *b})
     }
@@ -40,7 +43,7 @@ impl<'a, B: DeviceBackingAPI> NetworkRadio for SX1302<'a, B> {
             return Err(ConfigureError::ConfigCOMPathTooLong(config.device_com_path.to_string(), cstr.count_bytes(), std::mem::size_of_val(&com_path)));
         }
         unsafe {
-            // SAFETY: cstr is guranteed to be initialized at this point, and guranteed to fit into com_path)
+            // SAFETY: cstr is guaranteed to be initialized at this point, and guaranteed to fit into com_path)
             std::ptr::copy_nonoverlapping(cstr.as_ptr(), com_path.as_mut_ptr(), cstr.count_bytes());
             
             let mut conf = lgw_conf_board_s {
@@ -75,7 +78,7 @@ impl<'a, B: DeviceBackingAPI> NetworkRadio for SX1302<'a, B> {
             let mut conf = lgw_conf_ftime_s {
                 enable: config.timestamp_config != conf::FineTimestampConfig::NoFineTimestamps,
                 mode: match config.timestamp_config {
-                    conf::FineTimestampConfig::NoFineTimestamps => lgw_ftime_mode_t::LGW_FTIME_MODE_ALL_SF, // this doesn matter any ways if it's disabled
+                    conf::FineTimestampConfig::NoFineTimestamps => lgw_ftime_mode_t::LGW_FTIME_MODE_ALL_SF, // this doesn't matter any ways if it's disabled
                     conf::FineTimestampConfig::EnableForAll => lgw_ftime_mode_t::LGW_FTIME_MODE_ALL_SF,
                     conf::FineTimestampConfig::HighCapacityOnly => lgw_ftime_mode_t::LGW_FTIME_MODE_HIGH_CAPACITY,
                 },
@@ -157,7 +160,7 @@ impl<'a, B: DeviceBackingAPI> NetworkRadio for SX1302<'a, B> {
         self.valid_rf_power_levels.sort();
 
 
-        println!("INFO SX1302: radio configuration finished");
+        info!(target: "SX1302", "Radio configuration finished");
         Ok(())
     }
 
@@ -168,7 +171,7 @@ impl<'a, B: DeviceBackingAPI> NetworkRadio for SX1302<'a, B> {
                 return Err(FailedToStart.into());
             }
         }
-        println!("INFO SX1302: Gateway susscessfully started operation.");
+        info!(target: "SX1302", "Gateway susscessfully started operation.");
         Ok(())
     }
 
@@ -179,7 +182,7 @@ impl<'a, B: DeviceBackingAPI> NetworkRadio for SX1302<'a, B> {
                 return Err(FailedToStop.into()) ;
             }
         }
-        println!("INFO SX1302: Gateway susscessfully stopped operation.");
+        info!(target: "SX1302", "Gateway susscessfully stopped operation.");
         Ok(())
     }
 
@@ -196,24 +199,28 @@ impl<'a, B: DeviceBackingAPI> NetworkRadio for SX1302<'a, B> {
         let mut raw_data = Vec::with_capacity(count);
         for i in 0..count {
             let packet = &packets[i];
-            // println!("INFO SX1302: Got new packet: {:#?}", packet);
             
             if packet.status != bindings_loragw_hal::STAT_CRC_OK {
-                println!("WARN SX1302: Skipped one packet, CRC Non Ok.");
+                warn!(target: "SX1302", "Skipped one packet, CRC Non Ok.");
                 continue;
             } 
 
             let mut data = BufferType::with_capacity(packet.size as usize); 
             data.extend_from_slice(&packet.payload[0..packet.size as usize]);
-            raw_data.push(ReceivedPacket {
-                data,
-                meta: PacketMetadata { 
-                    length: packet.size as usize,
-                    frequency: packet.freq_hz,
-                    snr: packet.snr, 
-                    sf: if let Ok(v) = packet.datarate.try_into() { v } else { return Err(FailedToTryReceive); },
-                    coderate: Default::default() //if let Ok(v) = packet.coderate.try_into() { v } else { return Err(FailedToTryReceive) }
-                }
+            raw_data.push({ 
+                let rp = ReceivedPacket {
+                    data,
+                    meta: PacketMetadata { 
+                        length: packet.size as usize,
+                        frequency: packet.freq_hz,
+                        snr: packet.snr, 
+                        sf: if let Ok(v) = packet.datarate.try_into() { v } else { return Err(FailedToTryReceive); },
+                        coderate: Default::default() //if let Ok(v) = packet.coderate.try_into() { v } else { return Err(FailedToTryReceive) }
+                    }
+                };
+                debug!(target: "SX1302", "IN: {}", rp.meta);
+                trace!(target: "SX1302", "ICAP: {}", base64::prelude::BASE64_STANDARD.encode(rp.data.as_slice()));
+                rp
             }); 
         }
         Ok(raw_data)
@@ -275,6 +282,8 @@ impl<'a, B: DeviceBackingAPI> NetworkRadio for SX1302<'a, B> {
                 packet.preamble = if 6 <= preamble_length { preamble_length } 
                     else { return Err(TrySendError::PacketPreambleLengthTooShort(preamble_length, 6).into()); };
                 
+                debug!(target: "SX1302", "OUT: FREQ {}, {:?}, {:?}, LEN {}", packet_config.freq_hz, spread_factor, coderate, payload.len());
+
                 bindings_loragw_hal::MOD_LORA
             },
         };
@@ -284,9 +293,10 @@ impl<'a, B: DeviceBackingAPI> NetworkRadio for SX1302<'a, B> {
 
         packet.payload = buffer;
         packet.size = payload.len() as u16;
+        trace!(target: "SX1302", "OCAP: {}", base64::prelude::BASE64_STANDARD.encode(payload.as_slice()));
 
         if LGW_HAL_SUCCESS != unsafe { self.driver_api.lgw_send(&mut packet as *mut lgw_pkt_tx_s) } {
-            println!("WARN SX1302: Failed to send packet, with content: {:?}", packet);
+            warn!(target: "SX1302", "Failed to send packet, with content: {:?}", packet);
             return Err(TrySendError::FailedToTrySend.into());
         };
 
@@ -298,7 +308,7 @@ impl<'a, B: DeviceBackingAPI> NetworkRadio for SX1302<'a, B> {
         match self.get_radio_status(Radios::Radio1RxOnly) {
             Ok(RadioStatus::Busy) => Ok(true),
             Err(e) => { 
-                println!("Encountered error while trying to get radio status: {}", e); 
+                error!(target: "SX1302", "Encountered error while trying to get radio status: {}", e); 
                 Err(e.into()) 
             },
             _ => Ok(false)

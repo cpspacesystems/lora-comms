@@ -19,7 +19,6 @@ impl<T: Subscriber> DataProducer for Producer<T> {
     fn produce(&mut self) -> Result<Option<crate::common::BufferType>, crate::errors::AnyError> {
         if let Some(d) = self.sub.get()? {
             if d.len() != self.size { 
-                println!("{:?}", d);
                 return Err(errors::InvalidData(format!("Raw Pubsub expected data size of {}, but got {}!", self.size, d.len())).into()); 
             }
             Ok(Some(d))

@@ -17,6 +17,9 @@ hex = "0.4.3"
 toml = "1.1.2"
 serde = { version = "1.0.228", features = ["serde_derive"] }
 by_address = "1.2.1"
+log = "0.4.29"
+simple_logger = "5.2.0"
+base64 = "0.22.1"
 
 [lints.rust]
 dead_code = "allow"

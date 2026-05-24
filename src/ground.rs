@@ -1,5 +1,7 @@
 use std::{process::exit, rc::Rc, thread::sleep, time::{self, Duration}};
 
+use log::{error, info};
+
 #[cfg(all(not(test), feature = "simulation"))]
 use crate::network::simulated_radio::SimulatedRadio;
 use crate::{common::{AsRc, Bandwidth, BufferType, LoraCodeRate}, common_config::{ALLOW_CH_CHANGE, DOWNLINK_SELECTED_CH, INITIAL_CODE_RATE, LORA_PREAMBLE_LENGTH, UPLINK_SELECTED_CH}, data_handlers::{ConsumerManager, DataConsumer, ProducerManager, altimeter::Producer}, network::{NetworkRadio, conn_mgr::RadioConnectionManager}, packet::{DecodedPacket, OutgoingFrameBuilder, data_section::{DecodedDataSection, decode_data_sections}, transmission_ctrl::TSMCtrlInfo}, pubsub::{Connection, tism::TISMConnection, zenoh::{ZenohConnection, ZenohPublisher}}, sx1302::{SX1302, backing::{DeviceBackingAPI, PhysicalDevice}, conf::{DEFAULT_SX1302_CONFIG, SX1302Configuration}, error::TrySendError, types::{RadioStatus, Radios}}};
@@ -22,7 +24,17 @@ mod simulation;
 mod config;
 
 fn main() {
-    println!("CPSS - LoRa Ground Communication Node");
+    // initialize logging
+    simple_logger::SimpleLogger::new()
+        .with_level(log::LevelFilter::Trace)
+        .with_colors(true)
+        .with_utc_timestamps()
+        .env()
+        .init().unwrap()
+    ;
+
+
+    info!(target: "ground", "CPSS - LoRa Ground Communication Node");
 
     let config_path: String;
 
@@ -35,7 +47,7 @@ fn main() {
     {
         let mut args = std::env::args();
         if args.len() != 2 {
-            println!("Not Enough Arguments, Expected: <path to config.toml>");
+            error!(target: "ground", "Not Enough Arguments, Expected: <path to config.toml>");
             exit(1);
         } else {
             let _ = args.next().expect("Expected executable name!");
@@ -51,6 +63,7 @@ fn main() {
     
     #[cfg(any(not(feature = "simulation"), feature = "hardware_attached_full_system"))]
     let (mut _tism, mut _zenoh) = {
+        info!(target: "ground", "Using config toml at {}", config_path);
         let cfg =  config::parse(config_path).unwrap();
         let mut generator = config::generator::Generator::new(
             || TISMConnection, || ZenohConnection::new());
@@ -94,11 +107,11 @@ fn main() {
     let mut radio = SimulatedRadio::new(common_config::SIMULATION_GROUND_ADDR.to_string(), common_config::SIMULATION_ROCKET_ADDR.to_string());
 
     if let Err(e) = radio.configure() {
-        println!("Encountered error while trying to configure the radio: {e}");
+        error!(target: "ground", "Encountered error while trying to configure the radio: {e}");
         return;
     };
     if let Err(e) = radio.start() {
-        println!("Encountered error while trying to start the radio: {e}");
+        error!(target: "ground", "Encountered error while trying to start the radio: {e}");
         return;
     }
 
@@ -114,11 +127,11 @@ fn main() {
                 for p in packets {
                     match p.decode(&consumer_mgmt) {
                         Ok(v) => decoded_packets.push(v),
-                        Err(e) => println!("Encountered error while decoding packets: {}", e)
+                        Err(e) => error!(target: "ground", "Encountered error while decoding packets: {}", e)
                     };
                 };
             },
-            Err(_) => println!("Encountered error while trying to receive."),
+            Err(_) => error!(target: "ground", "Encountered error while trying to receive."),
         };
 
         let outbound_packets = connection_mgr.update(radio.is_currently_receiving().unwrap_or(true), decoded_packets);
@@ -150,7 +163,7 @@ fn main() {
                             continue;
                         },  
                         Err(e) => {
-                            println!("Encountered error while trying to send a packet: {e}");
+                            error!(target:"ground", "Encountered error while trying to send a packet: {e}");
                             break;
                         }
                     };
@@ -162,7 +175,8 @@ fn main() {
         let now = time::Instant::now();
         if now.saturating_duration_since(last_loop_time) > time::Duration::from_secs(1) {
             last_loop_time = now;
-            dbg!(connection_mgr.get_statistics());
+            let stats = connection_mgr.get_statistics();
+            info!(target: "stats", "Receive Kbps: {:.3}, PLR: {:.3}, RECEIVED: {}, LOST: {}", stats.recent_data_rate as f64 / 1000.0, stats.recent_packet_lost_rate, stats.packets_lost, stats.packets_received);
         }
 
         // sleep by what ever ms for new packets to appear

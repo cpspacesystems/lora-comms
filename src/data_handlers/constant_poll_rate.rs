@@ -1,5 +1,7 @@
 use std::{cell::RefCell, rc::Rc, time};
 
+use log::error;
+
 use crate::{common::BufferType, data_handlers::{DataConsumer, DataProducer}, errors, pubsub};
 
 pub struct Producer {
@@ -34,7 +36,7 @@ impl DataProducer for Producer {
                 Ok(Some(mut d)) => data.append(&mut d),
                 Ok(None) => data.resize(data.len() + p.get_size(), 0),
                 Err(e) => { 
-                    println!("Encountered error while producing: {}", e);
+                    error!(target: "Constant Poll Rate", "Encountered error while producing: {}", e);
                     data.resize(data.len() + p.get_size(), 0)
                 },
             }
@@ -74,14 +76,14 @@ impl DataConsumer for Consumer {
             return Err(errors::InvalidData(format!("ConstantPollRate consumer expected data size of {}, but got {}", self.total_size, buffer.len())).into());
         }
 
-        // revese consuming the buffer
+        // reverse consuming the buffer
         for c in self.consumers.iter().rev() {
             let mut consumer = c.borrow_mut();
             
             let offset = buffer.len() - consumer.get_size();
             let nb = buffer.split_off(offset);
             if let Err(e) = consumer.consume(nb) {
-                println!("Encountered error while consuming constant poll rate data at offset {}: {}", offset, e);
+                error!(target: "Constant Poll Rate", "Encountered error while consuming constant poll rate data at offset {}: {}", offset, e);
             };
         }
 

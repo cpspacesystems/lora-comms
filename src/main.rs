@@ -1,6 +1,8 @@
 use std::time;
 use std::{thread::sleep, time::Duration};
 
+use log::{info, error};
+
 use crate::common::AsRc;
 use crate::common_config::{DOWNLINK_SELECTED_CH, LORA_125KHZ_CH0};
 use crate::lr1121::LR1121;
@@ -24,7 +26,16 @@ mod lr1121;
 mod rocket_config;
 
 fn main() {
-    println!("CPSS - LoRa Rocket Communication Node");
+    // initialize logging
+    simple_logger::SimpleLogger::new()
+        .with_level(log::LevelFilter::Trace)
+        .with_colors(true)
+        .with_utc_timestamps()
+        .env()
+        .init().unwrap()
+    ;
+
+    info!(target: "rocket", "CPSS - LoRa Rocket Communication Node");
 
     let config_path: String;
 
@@ -37,7 +48,7 @@ fn main() {
     {
         let mut args = std::env::args();
         if args.len() != 2 {
-            println!("Not Enough Arguments, Expected: <path to config.toml>");
+            error!(target: "rocket", "Not Enough Arguments, Expected: <path to config.toml>");
             exit(1);
         } else {
             let _ = args.next().expect("Expected executable name!");
@@ -91,11 +102,11 @@ fn main() {
     let mut radio = SimulatedRadio::new(common_config::SIMULATION_ROCKET_ADDR.to_string(), common_config::SIMULATION_GROUND_ADDR.to_string());
 
     if let Err(e) = radio.configure() {
-        println!("Encountered error while trying to configure the radio: {e}");
+        error!(target: "rocket", "Encountered error while trying to configure the radio: {e}");
         return;
     };
     if let Err(e) = radio.start() {
-        println!("Encountered error while trying to start the radio: {e}");
+        error!(target: "rocket", "Encountered error while trying to start the radio: {e}");
         return;
     }
 
@@ -111,11 +122,11 @@ fn main() {
                 for p in packets {
                     match p.decode(&consumer_mgmt) {
                         Ok(v) => decoded_packets.push(v),
-                        Err(e) => println!("Encountered error while decoding packets: {}", e)
+                        Err(e) => error!(target: "rocket", "Encountered error while decoding packets: {}", e)
                     };
                 };
             },
-            Err(_) => println!("Encountered error while trying to receive."),
+            Err(_) => error!(target: "rocket", "Encountered error while trying to receive."),
         };
 
         let outbound_packets = connection_mgr.update(radio.is_currently_receiving().unwrap_or(false), decoded_packets);
@@ -147,7 +158,7 @@ fn main() {
                             continue;
                         },  
                         Err(e) => {
-                            println!("Encountered error while trying to send a packet: {e}");
+                            error!(target: "rocket", "Encountered error while trying to send a packet: {e}");
                             break;
                         }
                     };
@@ -159,7 +170,8 @@ fn main() {
         let now = time::Instant::now();
         if now.saturating_duration_since(last_loop_time) > time::Duration::from_secs(1) {
             last_loop_time = now;
-            dbg!(connection_mgr.get_statistics());
+            let stats = connection_mgr.get_statistics();
+            info!(target: "stats", "Receive Kbps: {:.3}, PLR: {:.3}, RECEIVED: {}, LOST: {}", stats.recent_data_rate as f64 / 1000.0, stats.recent_packet_lost_rate, stats.packets_lost, stats.packets_received);
         }
         // sleep by what ever ms for new packets to appear
         // sleep(Duration::from_millis(360/1000));

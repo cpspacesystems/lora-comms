@@ -1,4 +1,7 @@
+use core::error;
 use std::{collections::VecDeque, io::SeekFrom, rc::Rc, time};
+
+use log::{debug, error};
 
 use crate::{common::{BufferType, LoraCodeRate}, common_config::{self, PACKET_LOST_CALC_INTERVAL, UPLINK_TRANSMIT_BEGIN_PERIOD, UPLINK_TRANSMIT_TIMEOUT_PERIOD}, data_handlers::{self, ConsumerManager, ProducerManager}, errors::AnyError, network_ids::{self, TypeIDs}, packet::{self, DecodedPacket, OutgoingFrameBuilder, transmission_ctrl::TSMCtrlInfo}};
 
@@ -159,7 +162,7 @@ impl<'a> RadioConnectionManager<'a> {
     }
 
     fn construct_frame(&mut self) -> Vec<BufferType> {
-        println!("fconstruct");
+        debug!(target: "CONN MGR", "Construct Frame");
         self.frame_builder.gather_all();
         let packets = self.frame_builder.build(&mut self.last_tsm);
         packets
@@ -174,7 +177,7 @@ impl<'a> RadioConnectionManager<'a> {
         // sort decoded packets by frame number 
         DecodedPacket::sort_packets(&mut received_packets, self.last_tsm);
         for packet in received_packets {
-            println!("GOT: {}, {}", packet.tsm_ctrl.get_packet_number(), packet.tsm_ctrl.is_eot());
+            debug!(target: "CONN MGR", "GOT: {}, EOT {}", packet.tsm_ctrl.get_packet_number(), packet.tsm_ctrl.is_eot());
             let mut data_size = 0;
             let packets_lost = packet.tsm_ctrl.num_packets_from_last(self.last_tsm).saturating_sub(1);
 
@@ -182,7 +185,7 @@ impl<'a> RadioConnectionManager<'a> {
             for ds in packet.data_sections {
                 data_size += ds.size();
                 if let Err(e) = ds.consume() {
-                    println!("Encountered error while consuming data section: {}", e);
+                    error!(target: "CONN MGR", "Encountered error while consuming data section: {}", e);
                 }
             }
 

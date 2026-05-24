@@ -4,10 +4,10 @@ pub struct Context {
 }
 
 #[cfg(target_family = "unix")]
-#[link(name = "lora_bridge", kind="static")]
-#[link(name = "lgpio", kind="static")]
-#[link(name = "RadioLib", kind="static")]
-#[link(name = "stdc++", kind="static")]
+#[link(name = "lora_bridge", kind = "static")]
+#[link(name = "lgpio", kind = "static")]
+#[link(name = "RadioLib", kind = "static")]
+#[link(name = "stdc++", kind = "static")]
 unsafe extern "C" {
     pub fn init(
         spiChannel: u8,
@@ -41,12 +41,7 @@ unsafe extern "C" {
         addr: u8,
     ) -> i32;
 
-    pub fn receive(
-        context: *mut Context,
-        data: *mut u8,
-        len: usize,
-        timeout: u32,
-    ) -> i32;
+    pub fn receive(context: *mut Context, data: *mut u8, len: usize, timeout: u32) -> i32;
 
     pub fn setFrequency(context: *mut Context, frequency: f32) -> i32;
     pub fn setPower(context: *mut Context, power: u8) -> i32;
