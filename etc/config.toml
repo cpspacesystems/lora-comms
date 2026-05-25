@@ -1,0 +1,80 @@
+# This file defines all items that are shared over Lora between rocket and ground
+# 
+# Syntax:
+#   There are 2 directions. `rocket_to_ground` and `ground_to_rocket`. 
+#     Each toml array heading specifies what direction the data is traveling.
+#     Each entry must start with ones of these headings. You may have as many headings
+#     as you want. There is a pretty high limit as to how many entries you can have, 
+#     but they are subject to change due to how data is packed together. So **always**
+#     do test runs for a config change before actually uploading it to the rocket  
+#    
+#   Under each heading is the properties for that entry. The possible properties 
+#     and their meanings are as follows (note that all properties and arguments 
+#     are case-sensitive):
+#   
+#   rate
+#       Specifies the rate at which the entry is going to be polled/updated at.
+#       This rate may be any number, integer or decimal, followed by `Hz`. The
+#       rate **MUST** be in Hz. Ex: `1Hz`, `10Hz`, `0.5Hz`, `0.444313Hz`. LoRa
+#       will poll the entry at this rate and **attempt** to transmit the entry
+#       at the rate specified. If the data link is unable to support the amount
+#       of data transmission; then this rate may not be reached. Consider this 
+#       rate to be a specification more so for the highest rate at which the data 
+#       is polled. We also recommended using similar rate(s) for different entries
+#       and to keep the amount of distinct rates small. This can possibly help with
+#       optimizing how much data can be sent over the slow LoRa link.
+#       
+#       In addition, there are 2 special rates: `ASAP` and `OnChange`. `ASAP` means
+#       what it says, LoRa will try to send it every single frame when ever possible.
+#       `OnChange` means that LoRa will poll the entry and send it when the under laying
+#       source data changes. If the under laying data does not change. Then LoRa will 
+#       never send any data for this entry. `OnChange` and `ASAP` as follows similar
+#       limitations to the rest of the rates in that you are more so specifying an 
+#       optimal behavior. There is no guarantees that `OnChange` wouldn't miss a change.
+#
+#   size
+#       size of the under laying entry data in bytes. Any size is allowed. The under laying
+#       data must be fixed-size
+#
+#   source_network
+#       The network that the source is on. This can be either `TISM` or `Zenoh`. A `source_network`
+#       of `TISM` on a `rocket_to_ground` entry means that LoRa will poll the data specified
+#       by `source_path` on the TISM network.
+#
+#   source_path 
+#       The path that the source is on. LoRa will poll the data on this path to send to the destination.
+#       It's recommended for entries on the `TISM` network to not include any slashes in the paths. 
+#
+#   destination_network
+#       The network that the received data will be published to. This can be either `TISM` or `Zenoh`.
+#       A `destination_network` of `Zenoh` on a `rocket_to_ground` entry means that LoRa will publish the
+#       received data on to `destination_path` on the Zenoh network.
+#   
+#   destination_path
+#       The path the the received data should be published to. LoRa will publish any received data onto
+#       this path. It's recommended for entries on the `TISM` network to not include any slashes in the paths.
+#
+# Examples:
+#   # This entry specifies tom_data1 on the TISM network of the rocket to be polled 
+#   # at a rate of 0.5Hz. And sent to `ground_data1` on the Zenoh network on ground.
+#   [[rocket_to_ground]]
+#   rate = "0.5Hz"                        
+#   size =  100                           
+#   source_network = "TISM"
+#   source_path = "tom_data1"
+#   destination_network = "Zenoh"
+#   destination_path = "ground_data1"
+#
+#   # This entry sends ground_signal1 on the ground TISM network, when ever the value
+#   # changes, to the rocket TISM network at tom_signal1
+#   [[ground_to_rocket]]
+#   rate = "OnChange"
+#   size =  16
+#   source_network = "TISM"
+#   source_path = "ground_signal1"
+#   destination_network = "TISM"
+#   destination_path = "tom_signal1"
+#
+# See ./etc/hwas.toml for what a potential real world config file looks like. 
+#
+

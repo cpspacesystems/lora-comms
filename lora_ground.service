@@ -1,0 +1,8 @@
+[Unit]
+Description="CPSS LoRa Ground Communication Node"
+[Service]
+SyslogIdentifier=[lora_ground]
+Restart=always
+ExecStart=/opt/lora-comms/start_ground.bash
+[Install]
+WantedBy=multi-user.target

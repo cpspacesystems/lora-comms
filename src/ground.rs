@@ -176,7 +176,7 @@ fn main() {
         if now.saturating_duration_since(last_loop_time) > time::Duration::from_secs(1) {
             last_loop_time = now;
             let stats = connection_mgr.get_statistics();
-            info!(target: "stats", "Receive Kbps: {:.3}, PLR: {:.3}, RECEIVED: {}, LOST: {}", stats.recent_data_rate as f64 / 1000.0, stats.recent_packet_lost_rate, stats.packets_lost, stats.packets_received);
+            info!(target: "stats", "Receive Kbps: {:.3}, PLR: {:.3}, RECEIVED: {}, LOST: {}", stats.recent_data_rate as f64 / 1000.0, stats.recent_packet_lost_rate, stats.packets_received, stats.packets_lost);
         }
 
         // sleep by what ever ms for new packets to appear

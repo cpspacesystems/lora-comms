@@ -1,0 +1,8 @@
+[Unit]
+Description="CPSS LoRa Rocket Communication Node"
+[Service]
+SyslogIdentifier=[lora_rocket]
+Restart=always
+ExecStart=/opt/lora-comms/start_rocket.bash
+[Install]
+WantedBy=multi-user.target
