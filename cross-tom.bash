@@ -7,4 +7,4 @@ SCRIPT_DIR="$(dirname -- "${SCRIPT_PATH}")"
 
 cd "${SCRIPT_DIR}"
 
-./cross_build.bash "aarch64-unknown-linux-gnu" "cpss-tom" "/home/cpss/lora-comms/"
+./cross_build.bash "aarch64-unknown-linux-gnu" "cpss-tom" "/opt/lora-comms/"
