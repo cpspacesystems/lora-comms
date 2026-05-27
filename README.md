@@ -54,6 +54,11 @@ Follow these steps one by one. If during any steps any errors occur, try to read
     ```
 
     lora-comms will output its logs into the systemd-journal. You can use journalctl to see the full logs or `sudo systemctl status lora_<name>` for a quick status on the service.
+
+# Configuration
+
+Edit the file in [./etc/config.toml](./etc/config.toml) to configure what is sent over LoRa. See documentation within config.toml for more info.
+
 # Cross Compilation
 1. Install [Docker](https://www.docker.com/)
 2. Install cross: `cargo install cross`

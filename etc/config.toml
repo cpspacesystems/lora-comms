@@ -78,3 +78,10 @@
 # See ./etc/hwas.toml for what a potential real world config file looks like. 
 #
 
+[[rocket_to_ground]]
+rate = "ASAP"                        
+size =  83                           
+source_network = "TISM"
+source_path = "sensord"
+destination_network = "TISM"
+destination_path = "sensord"
