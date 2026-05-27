@@ -69,7 +69,9 @@ Then run:
     ```     
 Replacing `<ssh-username>@domain` with the ssh login info for the target machine.
 
-Or if you set up ssh-config and ssh public-key login. With the names `ground-station` and `cpss-tom`. For ground station and the rocket computer respectively. then you can use `cross-ground.bash` or `cross-tom.bash` to deploy without having to type commands every time. 
+or `./cross_release.bash "aarch64-unknown-linux-gnu" "<ssh-username>@<domain>" "/opt/lora-comms"` to build for release.
+
+Or if you set up ssh-config and ssh public-key login. With the names `ground-station` and `cpss-tom`. For ground station and the rocket computer respectively. then you can use `cross-ground.bash` or `cross-tom.bash` to deploy for debugging purposes without having to type commands every time. 
 
 # Features
 The code should work for non-pi platforms if you modify [reset_lgw.sh](reset_lgw.sh).
