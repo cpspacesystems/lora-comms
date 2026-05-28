@@ -39,9 +39,12 @@ TARGET=""
 if [[ ! -z "$2" ]]; then
     TARGET=$2
     echo "[CLI] Using command line specified binary at $TARGET"
-elif [[ -f "./target/deployed/ground" ]]; then
-    echo "[CLI] Deployed ground build found! Using ./target/deployed/ground"
-    TARGET="./target/deployed/ground"
+elif [[ -f "./target/deployed/release/ground" ]]; then
+    echo "[CLI] Deployed release ground build found! Using ./target/deployed/release/ground"
+    TARGET="./target/deployed/release/ground"
+elif [[ -f "./target/deployed/debug/ground" ]]; then
+    echo "[CLI] Deployed debug ground build found! Using ./target/deployed/debug/ground"
+    TARGET="./target/deployed/debug/ground"
 elif [[ -f "./target/release/ground" ]]; then
     echo "[CLI] Local release ground build found! Using ./target/release/ground"
     TARGET="./target/release/ground"
