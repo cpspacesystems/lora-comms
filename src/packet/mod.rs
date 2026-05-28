@@ -171,6 +171,10 @@ pub struct ReceivedPacket {
 
 impl ReceivedPacket {
     pub fn decode(self, consumer_mg: &ConsumerManager) -> Result<DecodedPacket, AnyError> {
+        if self.data.len() < TSM_CTRL_SIZE {
+            return Err("ReceivedPacket decode not enough data!".into());
+        }
+
         let tsm_ctrl = TSMCtrlInfo::try_from_wire(&self.data[0..2], self.meta.length as u8)?;
     
         let ds = decode_data_sections(&consumer_mg, 
