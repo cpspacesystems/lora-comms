@@ -77,6 +77,13 @@
 #
 # See ./etc/hwas.toml for what a potential real world config file looks like. 
 #
+# Note: If you have nothing in a direction, put an empty array before everything else:
+#   ground_to_rocket = [] # or
+#   rocket_to_ground = [] # or
+#   # BEFORE the rest of 
+#   [[ ... ]]
+
+ground_to_rocket = []
 
 [[rocket_to_ground]]
 rate = "ASAP"                        
