@@ -1,3 +1,4 @@
+use log::warn;
 use tism::dynamic::DynamicBorrowedSharedMemory;
 
 use crate::{common::BufferType, errors, pubsub::{Connection, Publisher, Subscriber, SubscriberOnChange}, simulation};
@@ -9,7 +10,8 @@ impl Connection for TISMConnection {
     type S = TISMSubscriber;
     fn subscribe(&mut self, path: impl AsRef<str>) -> Self::S {
         TISMSubscriber {
-            sub: tism::dynamic::wait_and_open(path.as_ref()).unwrap()
+            path: path.as_ref().to_owned(),
+            sub: None,
         }
     }
     
@@ -21,23 +23,55 @@ impl Connection for TISMConnection {
     type P = TISMPublisher;
     fn publish(&mut self, size: usize, path: impl AsRef<str>) -> Self::P {
         TISMPublisher {
-            publisher: tism::dynamic::create(path.as_ref(), size).unwrap(),
+            publisher: tism::dynamic::create(path.as_ref(), size).expect(format!("Unable to create TISM allocation {}", path.as_ref()).as_ref()),
             expected_size: size
         }
     }
 }
 
 pub struct TISMSubscriber {
-    sub: DynamicBorrowedSharedMemory
+    path: String,
+    sub: Option<DynamicBorrowedSharedMemory>
 }
+impl TISMSubscriber {
+    pub fn try_open_sub(&mut self) -> bool {
+        if let None = self.sub {
+            match tism::dynamic::open(&self.path) {
+                Ok(s) => {
+                    self.sub = Some(s);
+                    true
+                },
+                Err(e) => {
+                    warn!(target: "tism", "Unable to open TISM allocation with error: {e}");
+                    false
+                },
+            }
+        } else {
+            true
+        }
+    }
+}
+
 impl Subscriber for TISMSubscriber {
     fn get(&mut self) -> Result<Option<crate::common::BufferType>, crate::errors::AnyError> {
-        Ok(Some(self.sub.read()?))
+        self.try_open_sub();
+
+        if let Some(sub) = &mut self.sub { 
+            Ok(Some(sub.read()?))
+        } else {
+            Ok(None)
+        }
     }
 }
 impl SubscriberOnChange for TISMSubscriber {   
     fn get_onchange(&mut self) -> Result<Option<BufferType>, errors::AnyError> {
-        Ok(self.sub.read_change()?)   
+        self.try_open_sub();
+
+        if let Some(sub) = &mut self.sub { 
+            Ok(sub.read_change()?)
+        } else {
+            Ok(None)
+        }
     }
 }
 
