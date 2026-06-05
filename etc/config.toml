@@ -83,10 +83,16 @@
 #   # BEFORE the rest of 
 #   [[ ... ]]
 
-ground_to_rocket = []
+[[ground_to_rocket]]
+rate = "OnChange"
+size = 1
+source_network = "TISM"
+source_path = "command_shm"
+destination_network = "TISM"
+destination_path = "command_shm"
 
 [[rocket_to_ground]]
-rate = "ASAP"                        
+rate = "OnChange"                        
 size = 96                           
 source_network = "TISM"
 source_path = "sensord"
