@@ -22,7 +22,7 @@ rsync --archive --sparse --compress --fsync --delete --recursive --mkpath --quie
 
 echo "building"
 # `cargo install cross` if cross is not avaliable (you also need to have docker avaliable)
-cross build --target "${TARGET}"
+cross build --target "${TARGET}" --no-default-features
 
 echo "deploying"
 cd "${SCRIPT_DIR}/target/${TARGET}"
