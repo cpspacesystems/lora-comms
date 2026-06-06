@@ -20,6 +20,8 @@ impl Connection for ZenohConnection {
     type S = ZenohSubscriber;
     fn subscribe(&mut self, path: impl AsRef<str>) -> Self::S {
         ZenohSubscriber {
+            path: path.as_ref().to_owned(),
+            last_update_time: None,
             subscriber: self.session.declare_subscriber(path.as_ref())
                 .with(zenoh::handlers::RingChannel::new(1))
                 .wait().unwrap(),
@@ -29,6 +31,8 @@ impl Connection for ZenohConnection {
     type SC = ZenohOnChangeSubscriber;
     fn subscribe_on_change(&mut self, path: impl AsRef<str>) -> Self::SC {
         ZenohOnChangeSubscriber {
+            path: path.as_ref().to_owned(),
+            last_update_time: None,
             subscriber: self.session.declare_subscriber(path.as_ref())
                 .with(zenoh::handlers::RingChannel::new(1))
                 .wait().unwrap(),
@@ -55,20 +59,39 @@ impl Publisher for ZenohPublisher {
 }
 
 pub struct ZenohSubscriber {
+    path: String,
+    last_update_time: Option<std::time::Duration>,
     subscriber: zenoh::pubsub::Subscriber<zenoh::handlers::RingChannelHandler<zenoh::sample::Sample>>,
 }
 impl Subscriber for ZenohSubscriber {
     fn get(&mut self) -> Result<Option<crate::common::BufferType>, crate::errors::AnyError> {
         let sample = self.subscriber.try_recv()?;
         if let Some(s) = sample {
+            self.last_update_time = if let Some(ts) = s.timestamp() {
+                let t = ts.get_time();
+                // TODO: THIS SHOULD BE AN OFFSET, NOT JUST THE TIME CONVERTED TO DURATION
+                Some(std::time::Duration::new(t.as_secs().into(), t.subsec_nanos()))
+            } else {
+                None
+            };
             Ok(Some(s.payload().to_bytes().into()))
         } else {
             Ok(None)
         }
     }
+    
+    fn get_time_micros(&mut self) -> Result<Option<std::time::Duration>, crate::errors::AnyError> {
+        Ok(self.last_update_time)
+    }
+
+    fn get_path(&self) -> impl AsRef<str> {
+        &self.path
+    }
 }
 
 pub struct ZenohOnChangeSubscriber {
+    path: String,
+    last_update_time: Option<std::time::Duration>,
     subscriber: zenoh::pubsub::Subscriber<zenoh::handlers::RingChannelHandler<zenoh::sample::Sample>>,
     last: Option<Vec<u8>>,
 }
@@ -82,10 +105,26 @@ impl SubscriberOnChange for ZenohOnChangeSubscriber {
                 return Ok(None);
             }
 
+            self.last_update_time = if let Some(ts) = s.timestamp() {
+                let t = ts.get_time();
+                // TODO: THIS SHOULD BE AN OFFSET, NOT JUST THE TIME CONVERTED TO DURATION
+                Some(std::time::Duration::new(t.as_secs().into(), t.subsec_nanos()))
+            } else {
+                None
+            };
+
             self.last = Some(r);
             Ok(self.last.clone())
         } else {
             Ok(None)
         }   
     }
+   
+    fn get_time_micros(&mut self) -> Result<Option<std::time::Duration>, crate::errors::AnyError> {
+        Ok(self.last_update_time)
+    }
+
+    fn get_path(&self) -> impl AsRef<str> {
+        &self.path
+    }    
 }

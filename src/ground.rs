@@ -4,7 +4,7 @@ use log::{error, info};
 
 #[cfg(all(not(test), feature = "simulation"))]
 use crate::network::simulated_radio::SimulatedRadio;
-use crate::{common::{AsRc, Bandwidth, BufferType, LoraCodeRate}, common_config::{ALLOW_CH_CHANGE, DOWNLINK_SELECTED_CH, INITIAL_CODE_RATE, LORA_PREAMBLE_LENGTH, UPLINK_SELECTED_CH}, data_handlers::{ConsumerManager, DataConsumer, ProducerManager, altimeter::Producer}, network::{NetworkRadio, conn_mgr::RadioConnectionManager}, packet::{DecodedPacket, OutgoingFrameBuilder, data_section::{DecodedDataSection, decode_data_sections}, transmission_ctrl::TSMCtrlInfo}, pubsub::{Connection, tism::TISMConnection, zenoh::{ZenohConnection, ZenohPublisher}}, sx1302::{SX1302, backing::{DeviceBackingAPI, PhysicalDevice}, conf::{DEFAULT_SX1302_CONFIG, SX1302Configuration}, error::TrySendError, types::{RadioStatus, Radios}}};
+use crate::{common::{AsRc, Bandwidth, BufferType, LoraCodeRate}, common_config::{ALLOW_CH_CHANGE, DOWNLINK_SELECTED_CH, INITIAL_CODE_RATE, LORA_PREAMBLE_LENGTH, MAX_MAIN_LOOP_REFRESH_RATE, UPLINK_SELECTED_CH}, data_handlers::{ConsumerManager, DataConsumer, ProducerManager}, network::{NetworkRadio, conn_mgr::RadioConnectionManager}, packet::{DecodedPacket, OutgoingFrameBuilder, data_section::{DecodedDataSection, decode_data_sections}, transmission_ctrl::TSMCtrlInfo}, pubsub::{Connection, tism::TISMConnection, zenoh::{ZenohConnection, ZenohPublisher}}, sx1302::{SX1302, backing::{DeviceBackingAPI, PhysicalDevice}, conf::{DEFAULT_SX1302_CONFIG, SX1302Configuration}, error::TrySendError, types::{RadioStatus, Radios}}};
 use crate::network_ids::TypeIDs;
 
 #[cfg(test)]
@@ -66,7 +66,7 @@ fn main() {
         info!(target: "ground", "Using config toml at {}", config_path);
         let cfg =  config::parse(config_path).unwrap();
         let mut generator = config::generator::Generator::new(
-            || TISMConnection, || ZenohConnection::new());
+            || TISMConnection::new(), || ZenohConnection::new());
 
         generator.add_consuming_entries(&cfg.rocket_to_ground);
         generator.add_producing_entries(&cfg.ground_to_rocket);
@@ -173,14 +173,17 @@ fn main() {
         }
 
         let now = time::Instant::now();
-        if now.saturating_duration_since(last_loop_time) > time::Duration::from_secs(1) {
+        let delta = now.saturating_duration_since(last_loop_time); 
+        if delta > time::Duration::from_secs(1) {
             last_loop_time = now;
             let stats = connection_mgr.get_statistics();
             info!(target: "stats", "Receive Kbps: {:.3}, PLR: {:.3}, RECEIVED: {}, LOST: {}", stats.recent_data_rate as f64 / 1000.0, stats.recent_packet_lost_rate, stats.packets_received, stats.packets_lost);
         }
 
         // sleep by what ever ms for new packets to appear
-        // sleep(Duration::from_millis(360/1000));
+        if delta < MAX_MAIN_LOOP_REFRESH_RATE {
+            sleep(MAX_MAIN_LOOP_REFRESH_RATE - delta);
+        }
     }; 
 }
 

@@ -4,7 +4,7 @@ use std::{thread::sleep, time::Duration};
 use log::{info, error};
 
 use crate::common::AsRc;
-use crate::common_config::{DOWNLINK_SELECTED_CH, LORA_125KHZ_CH0};
+use crate::common_config::{DOWNLINK_SELECTED_CH, LORA_125KHZ_CH0, MAX_MAIN_LOOP_REFRESH_RATE};
 use crate::lr1121::LR1121;
 #[cfg(any(test, feature = "simulation"))]
 use crate::network::simulated_radio::SimulatedRadio;
@@ -65,7 +65,7 @@ fn main() {
     let (mut _tism, mut _zenoh) = {
         let cfg = config::parse(config_path).expect("Unable to parse config!");
         let mut generator = config::generator::Generator::new(
-            || TISMConnection, || ZenohConnection::new());
+            || TISMConnection::new(), || ZenohConnection::new());
 
         generator.add_consuming_entries(&cfg.ground_to_rocket);
         generator.add_producing_entries(&cfg.rocket_to_ground);
@@ -168,13 +168,17 @@ fn main() {
         }
 
         let now = time::Instant::now();
-        if now.saturating_duration_since(last_loop_time) > time::Duration::from_secs(1) {
+        let delta = now.saturating_duration_since(last_loop_time);
+        if delta > time::Duration::from_secs(1) {
             last_loop_time = now;
             let stats = connection_mgr.get_statistics();
             info!(target: "stats", "Receive Kbps: {:.3}, PLR: {:.3}, RECEIVED: {}, LOST: {}", stats.recent_data_rate as f64 / 1000.0, stats.recent_packet_lost_rate, stats.packets_received, stats.packets_lost);
         }
+        
         // sleep by what ever ms for new packets to appear
-        // sleep(Duration::from_millis(360/1000));
+        if delta < MAX_MAIN_LOOP_REFRESH_RATE {
+            sleep(MAX_MAIN_LOOP_REFRESH_RATE - delta);
+        }
     }; 
 }
 

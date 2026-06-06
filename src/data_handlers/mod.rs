@@ -5,7 +5,6 @@ use std::{cell::RefCell, collections::HashMap, rc::Rc};
 
 use crate::network_ids::TypeIDs;
 
-pub mod altimeter;
 pub mod prng_data_source;
 pub mod raw_pubsub;
 pub mod constant_poll_rate;

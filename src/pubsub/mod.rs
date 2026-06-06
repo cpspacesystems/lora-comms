@@ -1,4 +1,4 @@
-use std::usize;
+use std::{time::Duration, usize};
 
 use crate::{common::BufferType, errors::AnyError};
 
@@ -17,9 +17,13 @@ pub trait Publisher {
 }
 
 pub trait Subscriber {
+    fn get_path(&self) -> impl AsRef<str>;
     fn get(&mut self) -> Result<Option<BufferType>, AnyError>;
+    fn get_time_micros(&mut self) -> Result<Option<Duration>, crate::errors::AnyError>;
 }
 
 pub trait SubscriberOnChange {
+    fn get_path(&self) -> impl AsRef<str>;
     fn get_onchange(&mut self) -> Result<Option<BufferType>, AnyError>;
+    fn get_time_micros(&mut self) -> Result<Option<Duration>, crate::errors::AnyError>;
 }

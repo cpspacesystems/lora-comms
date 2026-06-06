@@ -1,0 +1,11 @@
+namespace cpss.tom.lora;
+
+table LastUpdatedTime {
+    data: LastUpdatedTimeData;
+}
+
+struct LastUpdatedTimeData {
+    time_delta_micros: uint64;
+}
+
+root_type LastUpdatedTime;

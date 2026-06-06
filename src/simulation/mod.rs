@@ -24,7 +24,7 @@ use crate::{common_config, pubsub::{self, Connection}, simulation::{data_generat
         info!(target: "HWAS", "Spawn tism pub size of {} at {}", size, path);
 
         std::thread::spawn(move || {
-            let publisher = pubsub::tism::TISMConnection.publish(size, path);
+            let publisher = pubsub::tism::TISMConnection::new().publish(size, path);
 
             spawn_data_source(size, publisher);
         });

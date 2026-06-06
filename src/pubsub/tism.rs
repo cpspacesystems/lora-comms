@@ -1,15 +1,26 @@
+use std::time::Duration;
+
 use log::warn;
 use tism::dynamic::DynamicBorrowedSharedMemory;
 
 use crate::{common::BufferType, errors, pubsub::{Connection, Publisher, Subscriber, SubscriberOnChange}, simulation};
 
 
-pub struct TISMConnection;
+pub struct TISMConnection {
+    reference_time: std::time::Instant
+}
+
+impl TISMConnection {
+    pub fn new() -> Self {
+        Self { reference_time: std::time::Instant::now() }
+    }
+}
 
 impl Connection for TISMConnection {
     type S = TISMSubscriber;
     fn subscribe(&mut self, path: impl AsRef<str>) -> Self::S {
         TISMSubscriber {
+            reference_time: self.reference_time.clone(),
             path: path.as_ref().to_owned(),
             sub: None,
         }
@@ -30,6 +41,7 @@ impl Connection for TISMConnection {
 }
 
 pub struct TISMSubscriber {
+    reference_time: std::time::Instant,
     path: String,
     sub: Option<DynamicBorrowedSharedMemory>
 }
@@ -50,9 +62,27 @@ impl TISMSubscriber {
             true
         }
     }
+
+    fn get_time_micros_universal(&mut self) -> Result<Option<Duration>, crate::errors::AnyError> {
+        if let Some(sub) = &mut self.sub {
+            if let Some(ts) = sub.last_read_at() {
+                if let Some(d) = ts.checked_duration_since(self.reference_time) {
+                    Ok(Some(d))
+                } else {
+                    warn!(target: "tism", "LRA time is eariler than REF time.");
+                    Ok(None)
+                }
+            } else {
+                Ok(None)
+            }
+        } else {
+            Ok(None)
+        }
+    }
 }
 
 impl Subscriber for TISMSubscriber {
+    
     fn get(&mut self) -> Result<Option<crate::common::BufferType>, crate::errors::AnyError> {
         self.try_open_sub();
 
@@ -61,6 +91,14 @@ impl Subscriber for TISMSubscriber {
         } else {
             Ok(None)
         }
+    }
+    
+    fn get_time_micros(&mut self) -> Result<Option<Duration>, crate::errors::AnyError> {
+        self.get_time_micros_universal()
+    }
+    
+    fn get_path(&self) -> impl AsRef<str> {
+        &self.path
     }
 }
 impl SubscriberOnChange for TISMSubscriber {   
@@ -72,6 +110,14 @@ impl SubscriberOnChange for TISMSubscriber {
         } else {
             Ok(None)
         }
+    }
+
+    fn get_time_micros(&mut self) -> Result<Option<Duration>, crate::errors::AnyError> {
+        self.get_time_micros_universal()
+    }
+
+    fn get_path(&self) -> impl AsRef<str> {
+        &self.path
     }
 }
 

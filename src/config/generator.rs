@@ -189,11 +189,11 @@ impl<T, Z> Generator<T, Z>
         match network {
             Network::TISM => {
                 let sub = self.network_get_tism().subscribe(name);
-                data_handlers::raw_pubsub::Producer::new(size, sub).as_rc()
+                data_handlers::raw_pubsub::Producer::new(size, sub, true).as_rc()
             },
             Network::Zenoh => {
                 let sub = self.network_get_zenoh().subscribe(name);
-                data_handlers::raw_pubsub::Producer::new(size, sub).as_rc()
+                data_handlers::raw_pubsub::Producer::new(size, sub, true).as_rc()
             },
         }
     }
@@ -201,12 +201,10 @@ impl<T, Z> Generator<T, Z>
     fn create_consumer(&mut self, network: &Network, size: usize, name: impl AsRef<str>) -> std::rc::Rc<std::cell::RefCell<dyn data_handlers::DataConsumer>>  {
         match network {
             Network::TISM => {
-                let sub = self.network_get_tism().publish(size, name);
-                data_handlers::raw_pubsub::Consumer::new(size, sub).as_rc()
+                data_handlers::raw_pubsub::Consumer::new(size, self.network_get_tism(), name, true).as_rc()
             },
             Network::Zenoh => {
-                let sub: ZenohPublisher = self.network_get_zenoh().publish(size, name);
-                data_handlers::raw_pubsub::Consumer::new(size, sub).as_rc()
+                data_handlers::raw_pubsub::Consumer::new(size, self.network_get_zenoh(), name, true).as_rc()
             },
         }
     }
