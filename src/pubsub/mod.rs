@@ -6,7 +6,7 @@ pub mod zenoh;
 pub mod tism;
 
 pub trait Connection { 
-    type S: Subscriber; type SC: SubscriberOnChange; type P: Publisher;
+    type S: Subscriber; type SC: Subscriber; type P: Publisher;
     fn subscribe(&mut self, path: impl AsRef<str>) -> Self::S;
     fn subscribe_on_change(&mut self, path: impl AsRef<str>) -> Self::SC;
     fn publish(&mut self, size: usize, path: impl AsRef<str>) -> Self::P;
@@ -19,11 +19,5 @@ pub trait Publisher {
 pub trait Subscriber {
     fn get_path(&self) -> impl AsRef<str>;
     fn get(&mut self) -> Result<Option<BufferType>, AnyError>;
-    fn get_time_micros(&mut self) -> Result<Option<Duration>, crate::errors::AnyError>;
-}
-
-pub trait SubscriberOnChange {
-    fn get_path(&self) -> impl AsRef<str>;
-    fn get_onchange(&mut self) -> Result<Option<BufferType>, AnyError>;
     fn get_time_micros(&mut self) -> Result<Option<Duration>, crate::errors::AnyError>;
 }

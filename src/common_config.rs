@@ -38,6 +38,8 @@ pub const RADIO_ENABLE_UPLINK: bool = true;
 
 pub const MAX_MAIN_LOOP_REFRESH_RATE: time::Duration = time::Duration::from_millis(360/1000);
 
+pub const TISM_MAX_STALENESS: time::Duration = time::Duration::from_secs(5); // seconds
+
 pub const PACKET_LOST_CALC_INTERVAL: time::Duration = time::Duration::from_secs(60); // seconds
 pub const CONNECTION_LOST_AFTER_PERIOD: time::Duration = time::Duration::from_secs(10); // seconds
 pub const UPLINK_TRANSMIT_BEGIN_PERIOD: time::Duration = time::Duration::from_millis(10); // ms

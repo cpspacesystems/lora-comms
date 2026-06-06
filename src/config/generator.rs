@@ -66,7 +66,7 @@ impl<T, Z> Generator<T, Z>
         #[cfg(feature = "hardware_attached_full_system")]
         self.hwas_spawn_publisher(entry.size.into(), &entry.source_network, &entry.source_path);
         
-        let p = self.create_producer(&entry.source_network, entry.size.into(), &entry.source_path);
+        let p = self.create_producer(&entry.source_network, entry.size.into(), entry.rate == format::PollRate::OnChange, &entry.source_path);
         for s in self.optionally_split_producer(entry.size.into(), p) {
             match entry.rate {
                 format::PollRate::ASAP | format::PollRate::OnChange => self.producers.push(s),
@@ -185,15 +185,21 @@ impl<T, Z> Generator<T, Z>
         }
     }
 
-    fn create_producer(&mut self, network: &Network, size: usize, name: impl AsRef<str>) -> std::rc::Rc<std::cell::RefCell<dyn data_handlers::DataProducer>>  {
+    fn create_producer(&mut self, network: &Network, size: usize, is_on_change: bool, name: impl AsRef<str>) -> std::rc::Rc<std::cell::RefCell<dyn data_handlers::DataProducer>>  {
         match network {
             Network::TISM => {
-                let sub = self.network_get_tism().subscribe(name);
-                data_handlers::raw_pubsub::Producer::new(size, sub, true).as_rc()
+                if is_on_change { 
+                    data_handlers::raw_pubsub::Producer::new(size, self.network_get_tism().subscribe_on_change(name), true).as_rc() 
+                } else {   
+                    data_handlers::raw_pubsub::Producer::new(size, self.network_get_tism().subscribe(name), true).as_rc() 
+                }
             },
             Network::Zenoh => {
-                let sub = self.network_get_zenoh().subscribe(name);
-                data_handlers::raw_pubsub::Producer::new(size, sub, true).as_rc()
+                if is_on_change { 
+                    data_handlers::raw_pubsub::Producer::new(size, self.network_get_zenoh().subscribe_on_change(name), true).as_rc() 
+                } else {   
+                    data_handlers::raw_pubsub::Producer::new(size, self.network_get_zenoh().subscribe(name), true).as_rc() 
+                }
             },
         }
     }

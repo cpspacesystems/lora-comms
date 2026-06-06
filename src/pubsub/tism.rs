@@ -3,7 +3,7 @@ use std::time::Duration;
 use log::warn;
 use tism::dynamic::DynamicBorrowedSharedMemory;
 
-use crate::{common::BufferType, errors, pubsub::{Connection, Publisher, Subscriber, SubscriberOnChange}, simulation};
+use crate::{common::BufferType, common_config, errors, pubsub::{Connection, Publisher, Subscriber}, simulation};
 
 
 pub struct TISMConnection {
@@ -26,9 +26,9 @@ impl Connection for TISMConnection {
         }
     }
     
-    type SC = TISMSubscriber;
-    fn subscribe_on_change(&mut self, path: impl AsRef<str>) -> Self::S {
-        Self::subscribe(self, path)
+    type SC = TISMOnChangeSubscriber;
+    fn subscribe_on_change(&mut self, path: impl AsRef<str>) -> Self::SC {
+        TISMOnChangeSubscriber(Self::subscribe(self, path))
     }    
 
     type P = TISMPublisher;
@@ -55,7 +55,7 @@ impl TISMSubscriber {
                 },
                 Err(e) => {
                     warn!(target: "tism", "Unable to open TISM allocation with error: {e}");
-                    false
+                    true
                 },
             }
         } else {
@@ -69,7 +69,7 @@ impl TISMSubscriber {
                 if let Some(d) = ts.checked_duration_since(self.reference_time) {
                     Ok(Some(d))
                 } else {
-                    warn!(target: "tism", "LRA time is eariler than REF time.");
+                    warn!(target: "tism", "LRA time {:?} is eariler than REF time {:?}.", ts, self.reference_time);
                     Ok(None)
                 }
             } else {
@@ -87,7 +87,15 @@ impl Subscriber for TISMSubscriber {
         self.try_open_sub();
 
         if let Some(sub) = &mut self.sub { 
-            Ok(Some(sub.read()?))
+            let d = sub.read()?;
+            
+            if let Some(lpt) = sub.staleness() && lpt < common_config::TISM_MAX_STALENESS {
+                Ok(Some(d))
+            } else {
+                warn!(target: "tism", "Topic {} is closed due to staleness.", self.path);
+                self.sub = None;
+                Ok(None)
+            }
         } else {
             Ok(None)
         }
@@ -101,23 +109,35 @@ impl Subscriber for TISMSubscriber {
         &self.path
     }
 }
-impl SubscriberOnChange for TISMSubscriber {   
-    fn get_onchange(&mut self) -> Result<Option<BufferType>, errors::AnyError> {
-        self.try_open_sub();
 
-        if let Some(sub) = &mut self.sub { 
-            Ok(sub.read_change()?)
+#[repr(transparent)]
+pub struct TISMOnChangeSubscriber(TISMSubscriber);
+impl Subscriber for TISMOnChangeSubscriber {   
+    fn get(&mut self) -> Result<Option<BufferType>, errors::AnyError> {
+        self.0.try_open_sub();
+
+        if let Some(sub) = &mut self.0.sub { 
+            let data = sub.read_change()?;
+            
+            if let Some(lpt) = sub.staleness() && lpt < common_config::TISM_MAX_STALENESS {
+                Ok(data)
+            } else {
+                warn!(target: "tism", "Topic {} is closed due to staleness.", self.0.path);
+                self.0.sub = None;
+                Ok(None)
+            }
+
         } else {
             Ok(None)
         }
     }
 
     fn get_time_micros(&mut self) -> Result<Option<Duration>, crate::errors::AnyError> {
-        self.get_time_micros_universal()
+        self.0.get_time_micros_universal()
     }
 
     fn get_path(&self) -> impl AsRef<str> {
-        &self.path
+        &self.0.path
     }
 }
 

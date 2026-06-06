@@ -2,7 +2,7 @@ use std::{borrow::Cow, marker::PhantomData};
 
 use zenoh::{Config, Wait, config, sample::Sample};
 
-use crate::pubsub::{Connection, Publisher, Subscriber, SubscriberOnChange};
+use crate::pubsub::{Connection, Publisher, Subscriber};
 
 pub struct ZenohConnection { 
     // _marker: PhantomData<&'a Self>, 
@@ -95,8 +95,8 @@ pub struct ZenohOnChangeSubscriber {
     subscriber: zenoh::pubsub::Subscriber<zenoh::handlers::RingChannelHandler<zenoh::sample::Sample>>,
     last: Option<Vec<u8>>,
 }
-impl SubscriberOnChange for ZenohOnChangeSubscriber {
-    fn get_onchange(&mut self) -> Result<Option<crate::common::BufferType>, crate::errors::AnyError> {
+impl Subscriber for ZenohOnChangeSubscriber {
+    fn get(&mut self) -> Result<Option<crate::common::BufferType>, crate::errors::AnyError> {
         let sample = self.subscriber.try_recv()?;
         if let Some(s) = sample {
             let r = s.payload().to_bytes().into();
